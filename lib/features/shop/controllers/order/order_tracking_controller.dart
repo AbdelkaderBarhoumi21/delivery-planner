@@ -5,6 +5,7 @@ import 'package:flutter_ecommerce_app_v2/servies/hive_services.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_model.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/bottom_sheet/order_validate_sheet.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/order_validation_model.dart';
+import 'package:flutter_ecommerce_app_v2/env.dart'; // <- AJOUT: pour la tolérance COD
 
 class OrderTrackingController extends GetxController {
   OrderTrackingController({required this.tripId, required this.orderIds});
@@ -291,8 +292,8 @@ class OrderTrackingController extends GetxController {
         return;
       }
 
-      // 3) COD accuracy (no shortfall, ≤ $1 over allowed)
-      const double overTolerance = 1.00;
+      // 3) COD accuracy (no shortfall, ≤ Env.codTolerance over allowed)
+      final double overTolerance = Env.codTolerance; // <- UTILISATION ENV
       if (requiredCod > 0) {
         if (picked.cod + 1e-9 < requiredCod) {
           _toast(
