@@ -1,9 +1,6 @@
-import 'package:flutter_ecommerce_app_v2/common/widget/order/order_title_verify_icon.dart';
-import 'package:flutter_ecommerce_app_v2/utils/constants/enums.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/rounded_container.dart';
-import 'package:flutter_ecommerce_app_v2/common/widget/images/rounded_image.dart';
 import 'package:iconsax/iconsax.dart';
 
 class AppCardOrderStatus extends StatelessWidget {

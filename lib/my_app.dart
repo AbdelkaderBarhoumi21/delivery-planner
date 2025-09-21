@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/screens/home/home_screen.dart';
 import 'package:flutter_ecommerce_app_v2/navigation_menu.dart';
 import 'package:get/get.dart';
 

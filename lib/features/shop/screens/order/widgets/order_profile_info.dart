@@ -22,7 +22,8 @@ class AppProfileInfo extends StatelessWidget {
       child: Row(
         children: [
           AppCircularContainer(
-            height: 56, width: 56,
+            height: 56,
+            width: 56,
             backgroundColor: dark ? AppColors.dark : AppColors.light,
             padding: const EdgeInsets.all(AppSizes.sm),
             child: Image.asset(AppImages.profileLogo, fit: BoxFit.cover),
@@ -31,7 +32,10 @@ class AppProfileInfo extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(c.customerName, style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                c.customerName,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: AppSizes.spaceBtwItems / 4),
               Text(
                 // pas d'adresse dans le JSON, on affiche les coords lisibles
@@ -46,7 +50,10 @@ class AppProfileInfo extends StatelessWidget {
             children: [
               Icon(Iconsax.call5, color: AppColors.primary),
               const SizedBox(width: AppSizes.spaceBtwItems),
-              Icon(Iconsax.message_21, color: AppColors.primary.withOpacity(0.6)),
+              Icon(
+                Iconsax.message_21,
+                color: AppColors.primary.withValues(alpha: 0.6),
+              ),
             ],
           ),
         ],

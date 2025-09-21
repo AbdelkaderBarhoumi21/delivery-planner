@@ -3,8 +3,6 @@ import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/rounded_con
 import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/orderdetails_controller.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
 import 'package:flutter_ecommerce_app_v2/utils/helpers/helper_functions.dart';
-import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class AppOrderMap extends StatelessWidget {

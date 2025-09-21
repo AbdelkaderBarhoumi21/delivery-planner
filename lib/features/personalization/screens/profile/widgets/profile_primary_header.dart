@@ -14,8 +14,8 @@ class AppProfilePrimaryHeader extends StatelessWidget {
         SizedBox(height: AppSizes.profilePrimaryHeaderHeight + 60),
         //header container
         AppPrimaryHeaderContainer(
-          child: Container(),
           height: AppSizes.profilePrimaryHeaderHeight,
+          child: Container(),
         ),
         //circular image
         Positioned(

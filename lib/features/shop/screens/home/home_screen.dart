@@ -3,7 +3,6 @@ import 'package:flutter_ecommerce_app_v2/common/widget/order/assigned_order_card
 import 'package:flutter_ecommerce_app_v2/common/widget/order/order_status.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/texts/section_heading.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/controllers/home/home_controller.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/screens/all_products/all_products_screen.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/textfields/search_bar.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/screens/home/widgets/home_appbar.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/primary_header_container.dart';
@@ -73,7 +72,7 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: AppSizes.spaceBtwSections),
                   AppSectionHeading(
                     title: 'Assigned Orders',
-                    onPressed: () => Get.to(() => const AllProductsScreen()),
+                    onPressed: (){},
                   ),
                   const SizedBox(height: AppSizes.spaceBtwItems),
                   AppAssignedOrderCard(

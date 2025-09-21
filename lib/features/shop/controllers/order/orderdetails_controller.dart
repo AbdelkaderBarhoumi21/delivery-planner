@@ -162,7 +162,7 @@ class OrdersdetailsController extends GetxController {
 
   // --------- Utils internes ---------
   Map<String, dynamic> _asStringMap(dynamic v) {
-    if (v is Map) return Map<String, dynamic>.from(v as Map);
+    if (v is Map) return Map<String, dynamic>.from(v);
     return <String, dynamic>{};
   }
 

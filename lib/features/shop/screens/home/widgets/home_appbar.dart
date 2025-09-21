@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/appbar/appbar.dart';
-import 'package:flutter_ecommerce_app_v2/common/widget/products/cart/cart_counter_icon.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/texts.dart';
+import 'package:iconsax/iconsax.dart';
 class AppHomeAppBar extends StatelessWidget {
   const AppHomeAppBar({
     super.key,
@@ -31,7 +31,7 @@ class AppHomeAppBar extends StatelessWidget {
           ),
         ],
       ),
-      actions: [AppCartCounterIcon()],
+      actions: [Icon(Iconsax.notification)],
     );
   }
 }

@@ -174,7 +174,6 @@ class HiveService {
   // -------------------------------
   // Options UI (pour bottom sheet)
   // -------------------------------
-  /// Retourne chaque véhicule en Map<String,dynamic> (id, name, capacity, fillRate)
   static List<Map<String, dynamic>> vehicleOptions() => vehiclesRaw();
 
   /// Calcule pour chaque order: poids/volume totaux (somme items*qty) + COD

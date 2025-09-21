@@ -1,7 +1,5 @@
 // lib/features/shop/screens/order/order_trip_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/order_map_controller.dart'
-    show OrdersTripMapController;
 import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/trip_controller.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';

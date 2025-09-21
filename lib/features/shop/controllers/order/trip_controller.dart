@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/vehicle_model.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/order_option.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_selection_model.dart';
+import 'package:flutter_ecommerce_app_v2/servies/hive_services.dart';
 
 class TripSheetController extends GetxController {
   TripSheetController({required this.vehicles, required this.orders});
@@ -15,6 +16,12 @@ class TripSheetController extends GetxController {
   VehicleOption? get currentVehicle => selectedVehicleId.value == null
       ? null
       : vehicles.firstWhere((v) => v.id == selectedVehicleId.value);
+
+  // ---- Eligibility ----
+  bool _isEligible(String id) {
+    final s = HiveService.statusOf(id);
+    return s == 'Pending' || s == 'In-Transit' || s == 'Assigned';
+  }
 
   // ---- Capacity (effective) ----
   double get effW => currentVehicle == null
@@ -61,19 +68,26 @@ class TripSheetController extends GetxController {
   // ---- Mutations ----
   void selectVehicle(String id) => selectedVehicleId.value = id;
 
-  /// toggle simple (ne bloque pas le dépassement)
-  void toggleOrder(String id, bool select) =>
-      select ? selectedOrderIds.add(id) : selectedOrderIds.remove(id);
+  /// toggle simple (no capacity block) — but reject ineligible orders
+  void toggleOrder(String id, bool select) {
+    if (!select) {
+      selectedOrderIds.remove(id);
+      return;
+    }
+    if (!_isEligible(id)) return; // ignore completed/cancelled
+    selectedOrderIds.add(id);
+  }
 
-  /// toggle "safe" : empêche le dépassement effectif, retourne false si refusé
+  /// toggle "safe": checks capacity and eligibility, returns false if refused
   bool tryToggleOrder(String id, bool select) {
     if (!select) {
       selectedOrderIds.remove(id);
       return true;
     }
+    if (!_isEligible(id)) return false; // not allowed
     final ord = _findOrder(id);
     if (ord == null) return false;
-    if (currentVehicle == null) return false; // pas de véhicule sélectionné
+    if (currentVehicle == null) return false;
 
     final newW = usedW + ord.weight;
     final newV = usedV + ord.volume;
@@ -83,11 +97,11 @@ class TripSheetController extends GetxController {
     return canAdd;
   }
 
-  /// remplace la sélection (utile pour "Select all")
+  /// replace selection (e.g., "Select all")
   void setSelectedOrders(Iterable<String> ids) {
     selectedOrderIds
       ..clear()
-      ..addAll(ids);
+      ..addAll(ids.where(_isEligible)); // keep only eligible
   }
 
   bool get canSave =>

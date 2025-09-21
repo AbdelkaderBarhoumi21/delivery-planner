@@ -5,7 +5,7 @@ import 'package:iconsax/iconsax.dart';
 
 import 'package:flutter_ecommerce_app_v2/common/styles/padding.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/appbar/appbar.dart';
-import 'package:flutter_ecommerce_app_v2/common/widget/appbar/tabBar.dart';
+import 'package:flutter_ecommerce_app_v2/common/widget/appbar/tab_bar.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/icons/circular_icon.dart';
 
 import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/order_history_controller.dart';

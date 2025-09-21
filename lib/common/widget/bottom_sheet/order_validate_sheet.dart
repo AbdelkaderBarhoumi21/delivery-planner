@@ -31,22 +31,22 @@ class OrderValidateSheet {
     int defaultQty = 0;
 
     // Helpers -------------------------------------------------------------
-    List<Map<String, dynamic>> _itemsOf(Map<String, dynamic> order) =>
+    List<Map<String, dynamic>> itemsOf(Map<String, dynamic> order) =>
         (order['items'] as List)
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList();
 
-    bool _anySerialTracked(List<Map<String, dynamic>> items) =>
+    bool anySerialTracked(List<Map<String, dynamic>> items) =>
         items.any((i) => (i['serialTracked'] as bool?) == true);
 
-    int _singleItemQtyOrZero(List<Map<String, dynamic>> items) {
+    int singleItemQtyOrZero(List<Map<String, dynamic>> items) {
       if (items.length == 1) {
         return (items.first['quantity'] as num).toInt();
       }
       return 0; // multi-SKU orders: let controller enforce per-SKU rules
     }
 
-    void _loadForOrder(String orderId) {
+    void loadForOrder(String orderId) {
       final order = HiveService.orderRawById(orderId);
       if (order == null) {
         requireSerials = false;
@@ -55,15 +55,15 @@ class OrderValidateSheet {
         serialsCtrl.clear();
         return;
       }
-      final items = _itemsOf(order);
-      requireSerials = _anySerialTracked(items);
-      defaultQty = _singleItemQtyOrZero(items);
+      final items = itemsOf(order);
+      requireSerials = anySerialTracked(items);
+      defaultQty = singleItemQtyOrZero(items);
       qtyCtrl.text = defaultQty.toString();
       if (!requireSerials) serialsCtrl.clear();
     }
 
     // Init for the first order
-    _loadForOrder(selectedOrderId);
+    loadForOrder(selectedOrderId);
 
     try {
       final res = await Get.bottomSheet<OrderValidationResult>(
@@ -123,7 +123,7 @@ class OrderValidateSheet {
                             if (v == null) return;
                             setState(() {
                               selectedOrderId = v;
-                              _loadForOrder(selectedOrderId);
+                              loadForOrder(selectedOrderId);
                             });
                           },
                         ),

@@ -4,7 +4,7 @@ import 'package:flutter_ecommerce_app_v2/common/widget/button/outline_button.dar
 import 'package:flutter_ecommerce_app_v2/features/authentication/controllers/auth/authentication_controller.dart';
 import 'package:flutter_ecommerce_app_v2/features/authentication/screens/forget_password/forget_password_screen.dart';
 import 'package:flutter_ecommerce_app_v2/features/authentication/screens/signup/signup.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/screens/home/home_screen.dart';
+import 'package:flutter_ecommerce_app_v2/navigation_menu.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/texts.dart';
 import 'package:get/get.dart';
@@ -76,5 +76,5 @@ class AppLoginForm extends StatelessWidget {
 void _handleSignIn() {
   final AuthController authController = Get.find<AuthController>();
   authController.login();
-  Get.offAll(() => const HomeScreen());
+  Get.offAll(() => const NavigationMenu());
 }

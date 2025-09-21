@@ -7,7 +7,7 @@ class AppCustomRoundedEgdes extends CustomClipper<Path> {
     // 1) on part du coin haut-gauche (0,0) implicitement
     // 2) on descend quasi en bas à gauche (bord vertical)
     //lineTo(x,y) trace un segment depuis la position courante jusqu’à (x,y).
-    path..lineTo(0, size.height - 40); //Top to bottom line
+    path.lineTo(0, size.height - 40); //Top to bottom line
     //first Curve
     // quadraticBezierTo(cx, cy, x, y)trace une courbe vers (x,y) en utilisant (cx,cy) comme point de contrôle
     Offset firstPointCurve = Offset(40, size.height);

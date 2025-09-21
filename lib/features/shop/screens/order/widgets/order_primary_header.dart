@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/appbar/appbar.dart';
-import 'package:flutter_ecommerce_app_v2/common/widget/products/cart/cart_counter_icon.dart';
-import 'package:flutter_ecommerce_app_v2/common/widget/textfields/search_bar.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/primary_header_container.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
+import 'package:iconsax/iconsax.dart';
 
 class AppOrderPrimaryHeader extends StatelessWidget {
   const AppOrderPrimaryHeader({super.key});
@@ -25,7 +24,7 @@ class AppOrderPrimaryHeader extends StatelessWidget {
                 context,
               ).textTheme.headlineMedium!.apply(color: AppColors.white),
             ),
-            actions: [AppCartCounterIcon()],
+            actions: [Icon(Iconsax.notification)],
           ),
         ),
       ],
