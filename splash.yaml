@@ -1,0 +1,13 @@
+flutter_native_splash:
+  color: "#FFFFFF"          # fond blanc en mode clair
+  color_dark: "#272727"     # fond gris foncé en mode sombre
+  image: assets/logo/t-store-splash-logo-black.png       # logo pour le splash
+  image_dark: assets/logo/t-store-splash-logo-white.png  # logo en dark mode
+
+  android_12:               # configuration spéciale Android 12+
+    color: "#FFFFFF"
+    color_dark: "#272727"
+    image: assets/logo/t-store-splash-logo-black.png       # logo pour le splash
+    image_dark: assets/logo/t-store-splash-logo-white.png  # logo en dark mode
+
+  web: false                # désactive le splash sur le Web
