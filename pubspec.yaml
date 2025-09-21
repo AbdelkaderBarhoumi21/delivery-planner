@@ -44,6 +44,9 @@ dependencies:
   #State management
   get:
   get_storage:
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
 
   #Product Specific
   carousel_slider:
@@ -67,6 +70,7 @@ flutter:
     - assets/icons/payment_methods/
     - assets/products/
     - assets/brands/
+    - assets/seed/plan.json
   fonts:
     - family: 'Nunito'
       fonts:

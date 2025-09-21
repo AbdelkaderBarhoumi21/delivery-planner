@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/login_signup/form_divider.dart';
 import 'package:flutter_ecommerce_app_v2/common/styles/padding.dart';
+import 'package:flutter_ecommerce_app_v2/features/authentication/controllers/auth/authentication_controller.dart';
 import 'package:flutter_ecommerce_app_v2/features/authentication/screens/login/widgets/login_formfield.dart';
 import 'package:flutter_ecommerce_app_v2/features/authentication/screens/login/widgets/login_header.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/button/social_buttons.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/screens/home/home_screen.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/texts.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/route_manager.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});

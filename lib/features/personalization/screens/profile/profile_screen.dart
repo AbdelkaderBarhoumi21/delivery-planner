@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/button/outline_button.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/texts/section_heading.dart';
+import 'package:flutter_ecommerce_app_v2/features/authentication/controllers/auth/authentication_controller.dart';
 import 'package:flutter_ecommerce_app_v2/features/personalization/screens/address/address_screen.dart';
 import 'package:flutter_ecommerce_app_v2/features/personalization/screens/profile/widgets/profile_primary_header.dart';
 import 'package:flutter_ecommerce_app_v2/features/personalization/screens/profile/widgets/settings_menu_profile_tile.dart';
@@ -54,7 +55,10 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   SizedBox(height: AppSizes.spaceBtwSections),
                   //Logout button
-                  AppOutlineButton(onPressed: () {}, child: Text("Logout")),
+                  AppOutlineButton(
+                    onPressed: () => AuthController.instance.logout(),
+                    child: Text("Logout"),
+                  ),
                   SizedBox(height: AppSizes.spaceBtwSections),
                 ],
               ),

@@ -9,7 +9,7 @@ class OnBoardingSkipButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = OnboarddingController.instance;
+    final controller = OnboardingController.instance;
     return Obx(
       () => controller.currentIndex.value == 2
           ? SizedBox()

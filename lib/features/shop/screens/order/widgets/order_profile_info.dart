@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/circular_container.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/rounded_container.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/orderdetails_controller.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/image.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
@@ -13,47 +14,39 @@ class AppProfileInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = AppHelperFunctions.isDarkMode(context);
+    final c = OrdersdetailsController.instance;
+
     return AppRoundedContainer(
       backgroundColor: dark ? AppColors.dark : AppColors.light,
       padding: const EdgeInsets.all(AppSizes.md),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          //profile picture
           AppCircularContainer(
-            height: 56,
-            width: 56,
+            height: 56, width: 56,
             backgroundColor: dark ? AppColors.dark : AppColors.light,
-            padding: EdgeInsets.all(AppSizes.sm),
+            padding: const EdgeInsets.all(AppSizes.sm),
             child: Image.asset(AppImages.profileLogo, fit: BoxFit.cover),
           ),
           const SizedBox(width: AppSizes.spaceBtwItems),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Abdelkader Brh",
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text(c.customerName, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSizes.spaceBtwItems / 4),
               Text(
-                '76B Tunis Olympic City',
+                // pas d'adresse dans le JSON, on affiche les coords lisibles
+                '${c.customerLatLng.latitude.toStringAsFixed(4)}, '
+                '${c.customerLatLng.longitude.toStringAsFixed(4)}',
                 style: Theme.of(context).textTheme.labelMedium,
               ),
             ],
           ),
-          Spacer(),
-
+          const Spacer(),
           Row(
             children: [
-              //call
               Icon(Iconsax.call5, color: AppColors.primary),
               const SizedBox(width: AppSizes.spaceBtwItems),
-              //message
-              Icon(
-                Iconsax.message_21,
-                color: AppColors.primary.withValues(alpha: 0.6),
-              ),
+              Icon(Iconsax.message_21, color: AppColors.primary.withOpacity(0.6)),
             ],
           ),
         ],

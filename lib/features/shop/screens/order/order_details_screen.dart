@@ -3,11 +3,12 @@ import 'package:flutter_ecommerce_app_v2/common/styles/padding.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/appbar/appbar.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/button/elevated_button.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/orderdetails_controller.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/order_trip._screen.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/orders_done.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/order_trip_screen.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/order_tracking_screen.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/widgets/order_info.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/widgets/order_map.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/widgets/order_profile_info.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/widgets/order_user_map.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
 import 'package:flutter_ecommerce_app_v2/utils/helpers/helper_functions.dart';
 import 'package:get/get.dart';
@@ -35,7 +36,7 @@ class OrderDetailScreen extends StatelessWidget {
             child: Column(
               children: [
                 //Map
-                AppOrderMap(),
+                AppOrderuserMap(),
                 const SizedBox(height: AppSizes.spaceBtwSections),
                 //profile info
                 AppProfileInfo(),
@@ -45,7 +46,7 @@ class OrderDetailScreen extends StatelessWidget {
                 const SizedBox(height: AppSizes.spaceBtwSections),
                 //approve button
                 AppElevatedButton(
-                  onPressed: () => Get.to(() => OrdersDoneScreen()),
+                  onPressed: () => Get.to(() => OrderTripScreen()),
                   child: Text("Approve"),
                 ),
               ],

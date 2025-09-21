@@ -8,7 +8,7 @@ class OnBoardingDotNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = OnboarddingController.instance;
+    final controller = OnboardingController.instance;
     return Positioned(
       bottom: AppDeviceHelpers.getBottomNavigationBarHeight() * 4,
       left: AppDeviceHelpers.getScreenWidth(context) / 3,

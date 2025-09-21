@@ -1,3 +1,4 @@
+// lib/common/widget/bottom_sheet/trip_bottom_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/trip_controller.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_selection_model.dart';
@@ -8,15 +9,9 @@ import 'package:flutter_ecommerce_app_v2/common/widget/button/elevated_button.da
 import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
 import 'package:flutter_ecommerce_app_v2/utils/helpers/helper_functions.dart';
 
-// Tes modèles “options” (simples DTO) :
 import 'package:flutter_ecommerce_app_v2/features/shop/models/vehicle_model.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/order_option.dart';
 
-/// Résultat renvoyé par la sheet
-
-/// Controller GetX pour gérer l’état de la sheet
-
-/// Bottom-sheet principale (avec sous-sheet Orders)
 class TripBottomSheet {
   static Future<TripSelection?> show(
     BuildContext context, {
@@ -26,7 +21,6 @@ class TripBottomSheet {
     final theme = Theme.of(context);
     final dark = AppHelperFunctions.isDarkMode(context);
 
-    // on tag le controller pour bien le nettoyer à la fin
     final tag = 'trip_sheet_${UniqueKey()}';
     final ctrl = Get.put(
       TripSheetController(vehicles: vehicles, orders: orders),
@@ -35,7 +29,6 @@ class TripBottomSheet {
 
     TripSelection? result;
 
-    // ---------- Sous-sheet Orders (multi sélection, UI comme tu l'as montré) ----------
     Future<void> _pickOrders() async {
       final tmp = Set<String>.from(ctrl.selectedOrderIds);
 
@@ -49,12 +42,16 @@ class TripBottomSheet {
             padding: AppPadding.screenPadding,
             child: StatefulBuilder(
               builder: (context, setSheet) {
+                double localCod = 0;
+                for (final o in orders) {
+                  if (tmp.contains(o.id)) localCod += o.codAmount;
+                }
+
                 final selectedCount = tmp.length;
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // header
                     Row(
                       children: [
                         Expanded(
@@ -72,8 +69,6 @@ class TripBottomSheet {
                         ),
                       ],
                     ),
-
-                    // actions rapides
                     Row(
                       children: [
                         TextButton.icon(
@@ -83,67 +78,59 @@ class TripBottomSheet {
                               ..addAll(orders.map((o) => o.id));
                             setSheet(() {});
                           },
-                          icon: Icon(
-                            Icons.select_all,
-                            color: AppColors.primary,
-                          ),
-                          label: Text(
-                            'Select all',
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
+                          icon: Icon(Icons.select_all, color: AppColors.primary),
+                          label: Text('Select all',
+                              style: Theme.of(context).textTheme.labelLarge),
                         ),
                         TextButton.icon(
                           onPressed: () {
                             tmp.clear();
                             setSheet(() {});
                           },
-                          icon: const Icon(
-                            Icons.clear_all,
-                            color: AppColors.primary,
-                          ),
-                          label: Text(
-                            'Clear',
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
+                          icon: const Icon(Icons.clear_all,
+                              color: AppColors.primary),
+                          label: Text('Clear',
+                              style: Theme.of(context).textTheme.labelLarge),
                         ),
                       ],
                     ),
                     SizedBox(height: AppSizes.spaceBtwItems / 4),
-                    // chips
                     Wrap(
                       spacing: AppSizes.spaceBtwItems / 2,
                       runSpacing: AppSizes.spaceBtwItems / 2,
                       children: orders.map((o) {
                         final checked = tmp.contains(o.id);
-                        final label = '${o.displayName}';
                         return FilterChip(
-                          backgroundColor: dark
-                              ? AppColors.dark
-                              : AppColors.light,
+                          backgroundColor:
+                              dark ? AppColors.dark : AppColors.light,
                           selectedColor: Theme.of(context).primaryColor,
                           checkmarkColor: AppColors.light,
                           label: Text(
-                            label,
+                            '${o.displayName}  •  \$${o.codAmount.toStringAsFixed(2)}',
                             style: checked
-                                ? Theme.of(context).textTheme.labelSmall!.apply(
-                                    color: AppColors.light,
-                                  )
-                                : Theme.of(context).textTheme.labelMedium!
-                                      .apply(color: AppColors.darkerGrey),
+                                ? Theme.of(context)
+                                    .textTheme
+                                    .labelSmall!
+                                    .apply(color: AppColors.light)
+                                : Theme.of(context)
+                                    .textTheme
+                                    .labelMedium!
+                                    .apply(color: AppColors.darkerGrey),
                           ),
                           selected: checked,
                           onSelected: (val) {
                             val ? tmp.add(o.id) : tmp.remove(o.id);
-                            setSheet(() {});
+                            setSheet(() {}); // rafraîchir somme locale
                           },
                         );
                       }).toList(),
                     ),
                     const SizedBox(height: AppSizes.spaceBtwSections / 2),
 
+                    // Bouton avec COD local calculé sur 'tmp'
                     AppElevatedButton(
                       onPressed: () => Get.back(result: true),
-                      child: const Text('Confirm  (COD :\$250.00)'),
+                      child: Text('Confirm  (Total COD: \$${localCod.toStringAsFixed(2)})'),
                     ),
                     const SizedBox(height: AppSizes.spaceBtwSections / 2),
                   ],
@@ -162,7 +149,6 @@ class TripBottomSheet {
       }
     }
 
-    // ---------------- Sheet principale ----------------
     await Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
@@ -181,30 +167,24 @@ class TripBottomSheet {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // header
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        'Plan a Trip',
-                        style: theme.textTheme.titleMedium,
-                      ),
+                      child: Text('Plan a Trip',
+                          style: theme.textTheme.titleMedium),
                     ),
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: Icon(
-                        Icons.close,
-                        color: dark ? Colors.white : Colors.black,
-                      ),
+                      icon: Icon(Icons.close,
+                          color: dark ? Colors.white : Colors.black),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSizes.spaceBtwItems / 2),
 
-                // 1) véhicule
+                // VEHICLE
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-
                   children: [
                     Text('Vehicle', style: theme.textTheme.labelLarge),
                     const SizedBox(height: AppSizes.spaceBtwItems),
@@ -214,37 +194,31 @@ class TripBottomSheet {
                       children: ctrl.vehicles.map((v) {
                         final selected = ctrl.selectedVehicleId.value == v.id;
                         return ChoiceChip(
-                          backgroundColor: dark
-                              ? AppColors.dark
-                              : AppColors.white,
+                          backgroundColor:
+                              dark ? AppColors.dark : AppColors.white,
                           selectedColor: Theme.of(context).primaryColor,
                           checkmarkColor: AppColors.light,
                           selected: selected,
-                          // labelPadding: const EdgeInsets.symmetric(
-                          //   horizontal: 10,
-                          // ),
                           label: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              selected
-                                  ? Icon(
-                                      Icons.local_shipping,
-                                      size: AppSizes.iconSm,
-                                      color: AppColors.light,
-                                    )
-                                  : Icon(
-                                      Icons.local_shipping,
-                                      size: AppSizes.iconSm,
-                                      color: AppColors.darkGrey,
-                                    ),
+                              Icon(Icons.local_shipping,
+                                  size: AppSizes.iconSm,
+                                  color: selected
+                                      ? AppColors.light
+                                      : AppColors.darkGrey),
                               const SizedBox(width: 6),
                               Text(
                                 v.name,
                                 style: selected
-                                    ? Theme.of(context).textTheme.labelMedium!
-                                          .apply(color: AppColors.light)
-                                    : Theme.of(context).textTheme.labelMedium!
-                                          .apply(color: AppColors.darkerGrey),
+                                    ? Theme.of(context)
+                                        .textTheme
+                                        .labelMedium!
+                                        .apply(color: AppColors.light)
+                                    : Theme.of(context)
+                                        .textTheme
+                                        .labelMedium!
+                                        .apply(color: AppColors.darkerGrey),
                               ),
                             ],
                           ),
@@ -273,7 +247,7 @@ class TripBottomSheet {
                   const SizedBox(height: AppSizes.spaceBtwItems),
                 ],
 
-                // 2) orders (ouvre le sous-sheet)
+                // ORDERS (ouvre sous-sheet)
                 Text('Orders', style: theme.textTheme.labelLarge),
                 const SizedBox(height: AppSizes.spaceBtwItems),
                 GestureDetector(
@@ -286,13 +260,24 @@ class TripBottomSheet {
                         hintText: chosenNames.isEmpty
                             ? 'Tap to choose orders'
                             : chosenNames.join(', '),
-                        prefixIcon: const Icon(Icons.receipt_long_outlined),
+                        prefixIcon:
+                            const Icon(Icons.receipt_long_outlined),
                         suffixIcon: const Icon(Icons.expand_more),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
+                  ),
+                ),
+
+                // --- Total COD réactif (vient du controller) ---
+                const SizedBox(height: AppSizes.spaceBtwItems),
+                Text(
+                  'Total COD: \$${ctrl.totalCod.toStringAsFixed(2)}',
+                  style: theme.textTheme.labelLarge!.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
 
@@ -320,16 +305,14 @@ class TripBottomSheet {
       isScrollControlled: true,
     );
 
-    // Nettoie le controller
     Get.delete<TripSheetController>(tag: tag, force: true);
     return result;
   }
 
-  // jauge simple
   static Widget _capacityBar({
     required ThemeData theme,
     required String label,
-    required double value, // 0..1
+    required double value,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,10 +324,9 @@ class TripBottomSheet {
           child: LinearProgressIndicator(
             value: value.clamp(0, 1),
             minHeight: 6,
-            backgroundColor: Colors.grey[300], // couleur fond
-            valueColor: AlwaysStoppedAnimation<Color>(
-              AppColors.primary, // 👈 couleur qui dépend de toi
-            ),
+            backgroundColor: Colors.grey[300],
+            valueColor:
+                const AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
         ),
       ],

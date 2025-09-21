@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/common/styles/padding.dart';
-import 'package:flutter_ecommerce_app_v2/common/widget/button/outline_button.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/textfields/text_field.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
 import 'package:get/get.dart';
-import 'package:iconsax/iconsax.dart';
 
 class AddressBottomSheet {
   /// Ouvre la bottom-sheet et renvoie:

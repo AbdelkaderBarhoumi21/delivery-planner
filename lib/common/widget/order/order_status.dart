@@ -11,7 +11,6 @@ class AppCardOrderStatus extends StatelessWidget {
     super.key,
     this.showBorder = true,
     this.onTap,
-    required this.imageUrl,
     required this.orderStatus,
     required this.orderStatusNumber,
     this.iconData = Iconsax.verify,
@@ -20,44 +19,33 @@ class AppCardOrderStatus extends StatelessWidget {
   final VoidCallback? onTap;
   final String orderStatus;
   final String orderStatusNumber;
-  final String imageUrl;
   final IconData iconData;
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: AppRoundedContainer(
-        height: AppSizes.brandCardHeight,
+        height: 100,
         width: 120,
         showBorder: showBorder,
         padding: const EdgeInsets.all(AppSizes.sm),
         backgroundColor: Colors.transparent,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //Brand Image
-            Flexible(
-              child: AppRoundedImage(
-                imageUrl: imageUrl,
-                backgroundColor: Colors.transparent,
+            Expanded(
+              child: Text(
+                "27",
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
             ),
-            SizedBox(width: AppSizes.spaceBtwItems / 2),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+              child: Row(
                 children: [
-                  // Brand Name verify icon
-                  AppOrderTitleVerifyIcon(
-                    title: orderStatus,
-                    brandTextSizes: TextSizes.large,
-                    iconData: iconData,
-                  ),
-                  //Text product number
+                  Icon(Icons.done),
                   Text(
-                    '$orderStatusNumber products',
+                    "Pending",
                     style: Theme.of(context).textTheme.labelMedium,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

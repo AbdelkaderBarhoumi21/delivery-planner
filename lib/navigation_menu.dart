@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/features/personalization/screens/profile/profile_screen.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/screens/home/home_screen.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/history_screen.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/screens/store/store_screen.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/screens/whishlist/whishlist_screen.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
@@ -30,7 +31,7 @@ class NavigationMenu extends StatelessWidget {
           },
           destinations: [
             NavigationDestination(icon: Icon(Iconsax.home), label: ('Home')),
-            NavigationDestination(icon: Icon(Iconsax.shop), label: ('Store')),
+            NavigationDestination(icon: Icon(Iconsax.shop), label: ('History')),
             NavigationDestination(
               icon: Icon(Iconsax.heart),
               label: ('Whishlist'),
@@ -49,7 +50,7 @@ class NavigationController extends GetxController {
   RxInt selectedIndex = 0.obs;
   List<Widget> screens = [
     const HomeScreen(),
-    const StoreScreen(),
+    const OrderHistoryScreen(),
     const WhishlistScreen(),
     const ProfileScreen(),
   ];

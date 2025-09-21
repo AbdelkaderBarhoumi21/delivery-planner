@@ -1,20 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ecommerce_app_v2/features/authentication/screens/onboarding/onboarding_screen.dart';
-import 'package:flutter_ecommerce_app_v2/utils/theme/theme.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/screens/home/home_screen.dart';
+import 'package:flutter_ecommerce_app_v2/navigation_menu.dart';
 import 'package:get/get.dart';
+
+import 'package:flutter_ecommerce_app_v2/features/authentication/controllers/auth/authentication_controller.dart';
+import 'package:flutter_ecommerce_app_v2/features/authentication/screens/onboarding/onboarding_screen.dart';
+import 'package:flutter_ecommerce_app_v2/features/authentication/screens/login/login_screen.dart';
+import 'package:flutter_ecommerce_app_v2/utils/theme/theme.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    final auth = Get.find<AuthController>();
+
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      home: OnboardingScreen(),
+
+      // 👇 Utilise les DEUX flags
+      home: Obx(() {
+        if (auth.isFirstTime) return const OnboardingScreen();
+        if (auth.isLoggedIn) return const NavigationMenu();
+        return const LoginScreen();
+      }),
     );
   }
 }
