@@ -7,7 +7,6 @@ import 'package:flutter_ecommerce_app_v2/features/shop/screens/all_products/all_
 import 'package:flutter_ecommerce_app_v2/common/widget/textfields/search_bar.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/screens/home/widgets/home_appbar.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/primary_header_container.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/order_details_screen.dart';
 
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
 import 'package:get/get.dart';

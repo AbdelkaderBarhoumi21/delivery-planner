@@ -130,30 +130,104 @@ class OrderTrackingController extends GetxController {
   }
 
   // ────────────────────────────────────────────────────────────────────────────
+  // Transitions utilitaires (mettent aussi à jour le statut UI dans Hive)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  Future<void> _startTrip(TripData t) async {
+    final updated = <TripStop>[];
+    final futures = <Future>[];
+
+    for (final s in t.stops) {
+      if (s.status == StopStatus.completed) {
+        updated.add(s);
+      } else {
+        updated.add(s.copyWith(status: StopStatus.inTransit));
+        futures.add(HiveService.setStatus(s.orderId, 'In-Transit'));
+      }
+    }
+    await Future.wait(futures);
+
+    // curseur sur le premier non-completed
+    int nextIndex = 0;
+    for (int k = 0; k < updated.length; k++) {
+      if (updated[k].status != StopStatus.completed) {
+        nextIndex = k;
+        break;
+      }
+    }
+    await _saveTrip(t.copyWith(stops: updated, currentIndex: nextIndex));
+  }
+
+  Future<void> _completeStop({
+    required TripData t,
+    required int idx,
+    required OrderValidationResult picked,
+    required String sku,
+    required int qty,
+    required List<String> serials,
+  }) async {
+    final updatedStops = [...t.stops];
+    updatedStops[idx] = updatedStops[idx].copyWith(
+      status: StopStatus.completed,
+      codCollected: picked.cod,
+      deliveredBySku: <String, int>{sku: qty},
+      serials: serials,
+    );
+
+    // Mettre à jour le statut UI (Home) immédiatement
+    await HiveService.setStatus(picked.orderId, 'Completed');
+
+    // Curseur → prochain non-completed (en repartant de l’index suivant)
+    int nextIndex = t.currentIndex;
+    for (int k = idx + 1; k < updatedStops.length; k++) {
+      if (updatedStops[k].status != StopStatus.completed) {
+        nextIndex = k;
+        break;
+      }
+    }
+
+    await _saveTrip(t.copyWith(stops: updatedStops, currentIndex: nextIndex));
+  }
+
+  Future<void> _failCurrentStop(TripData t) async {
+    // Fail le premier stop non completed (à partir du curseur)
+    int idx = t.currentIndex.clamp(0, t.stops.length - 1);
+    if (t.stops[idx].status == StopStatus.completed) {
+      for (int k = 0; k < t.stops.length; k++) {
+        if (t.stops[k].status != StopStatus.completed) {
+          idx = k;
+          break;
+        }
+      }
+    }
+
+    final updated = [...t.stops];
+    updated[idx] = updated[idx].copyWith(status: StopStatus.failed);
+
+    // Mettre à jour le statut UI (Home)
+    await HiveService.setStatus(updated[idx].orderId, 'Failed');
+
+    // Avancer au prochain non-completed
+    int nextIndex = idx;
+    for (int k = idx + 1; k < updated.length; k++) {
+      if (updated[k].status != StopStatus.completed) {
+        nextIndex = k;
+        break;
+      }
+    }
+    await _saveTrip(t.copyWith(stops: updated, currentIndex: nextIndex));
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
   // Actions Stepper
   // ────────────────────────────────────────────────────────────────────────────
   Future<void> onContinue(BuildContext context) async {
     final t = tripRx.value;
     if (t == null) return;
 
-    // START : tous les stops non complétés → In-Transit
+    // START : tous les stops non complétés → In-Transit + statut UI
     if (currentStep.value == 0) {
-      final updated = [
-        for (final s in t.stops)
-          s.status == StopStatus.completed
-              ? s
-              : s.copyWith(status: StopStatus.inTransit),
-      ];
-
-      // curseur sur le premier non-completed
-      int nextIndex = 0;
-      for (int k = 0; k < updated.length; k++) {
-        if (updated[k].status != StopStatus.completed) {
-          nextIndex = k;
-          break;
-        }
-      }
-      await _saveTrip(t.copyWith(stops: updated, currentIndex: nextIndex));
+      await _startTrip(t);
       return;
     }
 
@@ -181,7 +255,7 @@ class OrderTrackingController extends GetxController {
         sku = expected.keys.first;
       }
 
-      // ---- RULES ----
+      // ---- RÈGLES ----
       // 0) SKU exists
       if (!expected.containsKey(sku)) {
         _toast('Unknown SKU "$sku" for order ${picked.orderId}.');
@@ -201,7 +275,7 @@ class OrderTrackingController extends GetxController {
         return;
       }
 
-      // Block completing with zero delivered items (use Fail instead)
+      // forbid finishing with 0 delivered (use Fail instead)
       if (qty == 0) {
         _toast(
           'Delivered quantity must be at least 1. Use "Fail" if undelivered.',
@@ -209,7 +283,7 @@ class OrderTrackingController extends GetxController {
         return;
       }
 
-      // 2) partial delivery policy for discounted
+      // 2) no partial when discounted
       if (isDiscounted && qty != expQty) {
         _toast(
           'Partial delivery is not allowed for discounted orders. Expected $expQty.',
@@ -217,7 +291,7 @@ class OrderTrackingController extends GetxController {
         return;
       }
 
-      // 3) COD accuracy (no shortfall, ≤ $1 over-collection allowed)
+      // 3) COD accuracy (no shortfall, ≤ $1 over allowed)
       const double overTolerance = 1.00;
       if (requiredCod > 0) {
         if (picked.cod + 1e-9 < requiredCod) {
@@ -243,10 +317,10 @@ class OrderTrackingController extends GetxController {
         }
       }
 
-      // 4) serials required when the SKU is serial-tracked and qty > 0
+      // 4) serials required when SKU is serial-tracked
       final bool skuSerialTracked = _isSkuSerialTracked(order, sku);
       final serials = _parseSerials(picked.serial);
-      if (skuSerialTracked /* and qty > 0 is true here because of the zero guard */ ) {
+      if (skuSerialTracked) {
         if (serials.isEmpty) {
           _toast('Serial numbers are required for SKU $sku.');
           return;
@@ -263,30 +337,18 @@ class OrderTrackingController extends GetxController {
         }
       }
 
-      // ───────────────────────────────────────────────────────────────────────
-
-      // MAJ du stop → Completed + données, puis avancer le curseur
+      // Commit
       final idx = t.stops.indexWhere((s) => s.orderId == picked.orderId);
       if (idx < 0) return;
 
-      final updatedStops = [...t.stops];
-      updatedStops[idx] = updatedStops[idx].copyWith(
-        status: StopStatus.completed,
-        codCollected: picked.cod,
-        deliveredBySku: <String, int>{sku: qty},
+      await _completeStop(
+        t: t,
+        idx: idx,
+        picked: picked,
+        sku: sku,
+        qty: qty,
         serials: serials,
       );
-
-      // Curseur → prochain non-completed
-      int nextIndex = idx;
-      for (int k = 0; k < updatedStops.length; k++) {
-        if (updatedStops[k].status != StopStatus.completed) {
-          nextIndex = k;
-          break;
-        }
-      }
-
-      await _saveTrip(t.copyWith(stops: updatedStops, currentIndex: nextIndex));
       return;
     }
 
@@ -309,28 +371,7 @@ class OrderTrackingController extends GetxController {
   Future<void> markFail({String? reason}) async {
     final t = tripRx.value;
     if (t == null) return;
-
-    // Fail le premier stop non completed
-    int idx = 0;
-    for (int k = 0; k < t.stops.length; k++) {
-      if (t.stops[k].status != StopStatus.completed) {
-        idx = k;
-        break;
-      }
-    }
-
-    final updated = [...t.stops];
-    updated[idx] = updated[idx].copyWith(status: StopStatus.failed);
-
-    // Avancer au prochain non-completed
-    int nextIndex = idx;
-    for (int k = 0; k < updated.length; k++) {
-      if (updated[k].status != StopStatus.completed) {
-        nextIndex = k;
-        break;
-      }
-    }
-    await _saveTrip(t.copyWith(stops: updated, currentIndex: nextIndex));
+    await _failCurrentStop(t);
   }
 
   void _toast(String msg) {

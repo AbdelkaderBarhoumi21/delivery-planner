@@ -6,12 +6,12 @@ import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_model.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class HiveService {
-  
   // ---- Boxes ----
   static const _planBox = 'plan'; // meta, vehicles, customers
   static const _tripsBox = 'trips'; // orders by id, trips: trip_*
   static const _uiBox = 'ui'; // assigned ids, statusById
   static const _metaBox = 'meta'; // flags (seeded)
+  static Stream<BoxEvent> watchUi() => Hive.box(_uiBox).watch();
 
   // -------------------------------
   // Init + Seed (une seule fois)
@@ -127,20 +127,20 @@ class HiveService {
   static List<Map<String, dynamic>> vehiclesRaw() =>
       _asListMap(Hive.box(_planBox).get('vehicles'));
 
- static List<Map<String, dynamic>> ordersRaw() {
-  final list = _asListMap(Hive.box(_planBox).get('orders'));
-  if (list.isNotEmpty) return list;
+  static List<Map<String, dynamic>> ordersRaw() {
+    final list = _asListMap(Hive.box(_planBox).get('orders'));
+    if (list.isNotEmpty) return list;
 
-  // Fallback: gather orders indexed by id in "trips" box (if you ever stored them there)
-  final trips = Hive.box(_tripsBox);
-  final out = <Map<String, dynamic>>[];
-  for (final k in trips.keys) {
-    if (k is String && k.startsWith('ORD-')) {
-      out.add(Map<String, dynamic>.from(trips.get(k) as Map));
+    // Fallback: gather orders indexed by id in "trips" box (if you ever stored them there)
+    final trips = Hive.box(_tripsBox);
+    final out = <Map<String, dynamic>>[];
+    for (final k in trips.keys) {
+      if (k is String && k.startsWith('ORD-')) {
+        out.add(Map<String, dynamic>.from(trips.get(k) as Map));
+      }
     }
-  }
-  return out;
-}// copie liste complète
+    return out;
+  } // copie liste complète
 
   static Map<String, dynamic>? orderRawById(String id) {
     // priorité: lookup direct par id (rapide)
@@ -178,24 +178,26 @@ class HiveService {
   static List<Map<String, dynamic>> vehicleOptions() => vehiclesRaw();
 
   /// Calcule pour chaque order: poids/volume totaux (somme items*qty) + COD
-static List<Map<String, dynamic>> orderOptions() {
-  final list = ordersRaw();
-  return list.map((o) {
-    final items = _asListMap(o['items']);
-    double w = 0, v = 0;
-    for (final it in items) {
-      final q = (it['quantity'] as num).toInt();
-      w += ((it['weight'] as num).toDouble()) * q;
-      v += ((it['volume'] as num).toDouble()) * q;
-    }
-    return {
-      'id': o['id'],
-      'codAmount': (o['codAmount'] as num?)?.toDouble() ?? 0.0,
-      'weight': w,
-      'volume': v,
-    };
-  }).toList(growable: false);
-}
+  static List<Map<String, dynamic>> orderOptions() {
+    final list = ordersRaw();
+    return list
+        .map((o) {
+          final items = _asListMap(o['items']);
+          double w = 0, v = 0;
+          for (final it in items) {
+            final q = (it['quantity'] as num).toInt();
+            w += ((it['weight'] as num).toDouble()) * q;
+            v += ((it['volume'] as num).toDouble()) * q;
+          }
+          return {
+            'id': o['id'],
+            'codAmount': (o['codAmount'] as num?)?.toDouble() ?? 0.0,
+            'weight': w,
+            'volume': v,
+          };
+        })
+        .toList(growable: false);
+  }
 
   // -------------------------------
   // Trips (persistences & streams)
@@ -229,47 +231,46 @@ static List<Map<String, dynamic>> orderOptions() {
   static Stream<BoxEvent> watchTrips() => Hive.box(_tripsBox).watch();
   // lib/servies/hive_services.dart
 
-// --- Options UI (pour bottom sheet) ---
-final oOpts = HiveService.ordersRaw()
-    .map((e) => OrderOption.fromHive(e))
-    .toList(growable: false);
-// lib/servies/hive_services.dart  (ajouts)
+  // --- Options UI (pour bottom sheet) ---
+  final oOpts = HiveService.ordersRaw()
+      .map((e) => OrderOption.fromHive(e))
+      .toList(growable: false);
+  // lib/servies/hive_services.dart  (ajouts)
 
-static Map<String, dynamic>? tripRaw(String tripId) {
-  final raw = Hive.box(_tripsBox).get(tripId);
-  return raw == null ? null : Map<String, dynamic>.from(raw as Map);
-}
+  static Map<String, dynamic>? tripRaw(String tripId) {
+    final raw = Hive.box(_tripsBox).get(tripId);
+    return raw == null ? null : Map<String, dynamic>.from(raw as Map);
+  }
 
-static Future<void> upsertTrip(TripData t) async {
-  await Hive.box(_tripsBox).put(t.id, t.toMap());
-}
+  static Future<void> upsertTrip(TripData t) async {
+    await Hive.box(_tripsBox).put(t.id, t.toMap());
+  }
 
-static Future<TripData?> updateStop(
-  String tripId,
-  int stopIndex,
-  TripStop Function(TripStop) updater, {
-  int? newCurrentIndex,
-}) async {
-  final raw = tripRaw(tripId);
-  if (raw == null) return null;
-  final trip = TripData.fromMap(raw);
-  if (stopIndex < 0 || stopIndex >= trip.stops.length) return trip;
+  static Future<TripData?> updateStop(
+    String tripId,
+    int stopIndex,
+    TripStop Function(TripStop) updater, {
+    int? newCurrentIndex,
+  }) async {
+    final raw = tripRaw(tripId);
+    if (raw == null) return null;
+    final trip = TripData.fromMap(raw);
+    if (stopIndex < 0 || stopIndex >= trip.stops.length) return trip;
 
-  final newStops = [...trip.stops];
-  newStops[stopIndex] = updater(newStops[stopIndex]);
+    final newStops = [...trip.stops];
+    newStops[stopIndex] = updater(newStops[stopIndex]);
 
-  final updated = trip.copyWith(
-    stops: newStops,
-    currentIndex: newCurrentIndex ?? trip.currentIndex,
-  );
-  await upsertTrip(updated);
-  return updated;
-}
-static TripData? getTrip(String tripId) {
-  final raw = Hive.box(_tripsBox).get(tripId);
-  if (raw == null) return null;
-  return TripData.fromMap(Map<String, dynamic>.from(raw as Map));
-}
+    final updated = trip.copyWith(
+      stops: newStops,
+      currentIndex: newCurrentIndex ?? trip.currentIndex,
+    );
+    await upsertTrip(updated);
+    return updated;
+  }
 
-
+  static TripData? getTrip(String tripId) {
+    final raw = Hive.box(_tripsBox).get(tripId);
+    if (raw == null) return null;
+    return TripData.fromMap(Map<String, dynamic>.from(raw as Map));
+  }
 }

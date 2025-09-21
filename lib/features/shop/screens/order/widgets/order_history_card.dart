@@ -1,36 +1,67 @@
+// lib/features/shop/screens/order/widgets/order_history_card.dart
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:iconsax/iconsax.dart';
+
 import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/rounded_container.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
 import 'package:flutter_ecommerce_app_v2/utils/helpers/helper_functions.dart';
-import 'package:iconsax/iconsax.dart';
+
+// ViewModel exposé par OrderHistoryController
+import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/order_history_controller.dart';
 
 class AppOrderHistoryCard extends StatelessWidget {
   const AppOrderHistoryCard({
     super.key,
+    required this.items,
+    required this.onTap,
     this.shrinkWrap = false,
     this.nonScrollable = false,
-    required this.onTap,
   });
 
+  final List<HistoryItemVM> items;
+  final void Function(String orderId) onTap;
   final bool shrinkWrap;
   final bool nonScrollable;
-  final void Function()? onTap;
 
   @override
   Widget build(BuildContext context) {
     final dark = AppHelperFunctions.isDarkMode(context);
+    final fmt = DateFormat('dd MMM yyyy');
+
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return ListView.separated(
-      padding: EdgeInsets.zero, //delete padding arround listview
-      shrinkWrap: shrinkWrap, // ✅
+      padding: EdgeInsets.zero,
+      shrinkWrap: shrinkWrap,
       physics: nonScrollable
-          ? const NeverScrollableScrollPhysics() // ✅
+          ? const NeverScrollableScrollPhysics()
           : const ClampingScrollPhysics(),
-      itemCount: 3,
+      itemCount: items.length,
       separatorBuilder: (_, __) =>
           const SizedBox(height: AppSizes.spaceBtwItems),
       itemBuilder: (context, index) {
+        final vm = items[index];
+
+        final Color statusColor = switch (vm.status.toLowerCase()) {
+          'pending' => AppColors.primary,
+          'in-transit' => Colors.orange,
+          'completed' => Colors.green,
+          'cancelled' => Colors.red,
+          _ => AppColors.primary,
+        };
+
+        final String statusLabel = switch (vm.status.toLowerCase()) {
+          'pending' => 'Pending Order',
+          'in-transit' => 'In-Transit Order',
+          'completed' => 'Completed Order',
+          'cancelled' => 'Cancelled Order',
+          _ => '${vm.status} Order',
+        };
+
         return AppRoundedContainer(
           showBorder: true,
           backgroundColor: dark ? AppColors.dark : AppColors.light,
@@ -38,8 +69,10 @@ class AppOrderHistoryCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // ---- Ligne 1: Status + Order Id | Shipping Date ----
               Row(
                 children: [
+                  // Statut + ID
                   Expanded(
                     flex: 5,
                     child: Row(
@@ -51,15 +84,15 @@ class AppOrderHistoryCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Pending Order',
+                                statusLabel,
                                 style: Theme.of(context).textTheme.bodyLarge!
-                                    .apply(
-                                      color: AppColors.primary,
-                                      fontWeightDelta: 1,
+                                    .copyWith(
+                                      color: statusColor,
+                                      fontWeight: FontWeight.w600,
                                     ),
                               ),
                               Text(
-                                'GYS324',
+                                vm.id, // Order Id
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                             ],
@@ -68,6 +101,8 @@ class AppOrderHistoryCard extends StatelessWidget {
                       ],
                     ),
                   ),
+
+                  // Date d’expédition
                   Expanded(
                     flex: 3,
                     child: Row(
@@ -83,7 +118,7 @@ class AppOrderHistoryCard extends StatelessWidget {
                                 style: Theme.of(context).textTheme.labelMedium,
                               ),
                               Text(
-                                '06 Jan 2025',
+                                fmt.format(vm.shippingDate),
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                             ],
@@ -94,7 +129,10 @@ class AppOrderHistoryCard extends StatelessWidget {
                   ),
                 ],
               ),
+
               const SizedBox(height: AppSizes.spaceBtwItems),
+
+              // ---- Ligne 2: Customer + flèche ----
               Row(
                 children: [
                   const Icon(Iconsax.user),
@@ -104,22 +142,24 @@ class AppOrderHistoryCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Customer Info'),
+                        const Text('Customer Info'),
                         Text(
-                          'Abdelkader',
+                          vm.customerName,
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                       ],
                     ),
                   ),
 
+                  // Flèche
                   Expanded(
                     flex: 1,
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
-                        onTap: onTap,
-                        child: Icon(Iconsax.arrow_right_34),
+                        onTap: () =>
+                            onTap(vm.id), // ← renvoie l’orderId au parent
+                        child: const Icon(Iconsax.arrow_right_34),
                       ),
                     ),
                   ),
