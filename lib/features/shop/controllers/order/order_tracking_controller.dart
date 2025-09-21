@@ -38,8 +38,8 @@ class OrderTrackingController extends GetxController {
 
   TripStop? get currentStop =>
       (tripRx.value != null && tripRx.value!.stops.isNotEmpty)
-          ? tripRx.value!.stops[currentIndex]
-          : null;
+      ? tripRx.value!.stops[currentIndex]
+      : null;
 
   // ────────────────────────────────────────────────────────────────────────────
   // Lifecycle
@@ -70,7 +70,8 @@ class OrderTrackingController extends GetxController {
 
   void _recomputeStepper(TripData t) {
     final allCompleted =
-        t.stops.isNotEmpty && t.stops.every((s) => s.status == StopStatus.completed);
+        t.stops.isNotEmpty &&
+        t.stops.every((s) => s.status == StopStatus.completed);
 
     isCompleted.value = allCompleted;
 
@@ -87,7 +88,9 @@ class OrderTrackingController extends GetxController {
     final lines = <String>[];
     for (final s in t.stops.where((x) => x.status == StopStatus.completed)) {
       final cod = s.codCollected.toStringAsFixed(2);
-      final skuParts = s.deliveredBySku.entries.map((e) => '${e.key}:${e.value}').join(', ');
+      final skuParts = s.deliveredBySku.entries
+          .map((e) => '${e.key}:${e.value}')
+          .join(', ');
       final sn = s.serials.isEmpty ? '' : ', SN=${s.serials.join('/')}';
       lines.add('• ${s.orderId} validated (COD \$$cod, $skuParts$sn)');
     }
@@ -110,7 +113,8 @@ class OrderTrackingController extends GetxController {
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
     return {
-      for (final i in items) (i['sku'] as String): (i['quantity'] as num).toInt(),
+      for (final i in items)
+        (i['sku'] as String): (i['quantity'] as num).toInt(),
     };
   }
 
@@ -155,8 +159,10 @@ class OrderTrackingController extends GetxController {
 
     // VALIDATE : bottom-sheet avec dropdown d’orders restants
     if (currentStep.value == 1) {
-      final OrderValidationResult? picked =
-          await OrderValidateSheet.show(context, remaining);
+      final OrderValidationResult? picked = await OrderValidateSheet.show(
+        context,
+        remaining,
+      );
       if (picked == null) return;
 
       // Charger la commande pour vérifier les règles
@@ -166,7 +172,8 @@ class OrderTrackingController extends GetxController {
       // Attendus / flags
       final expected = _expectedForOrder(order); // {sku: qty}
       final isDiscounted = (order['isDiscounted'] as bool?) == true;
-      final double requiredCod = (order['codAmount'] as num?)?.toDouble() ?? 0.0;
+      final double requiredCod =
+          (order['codAmount'] as num?)?.toDouble() ?? 0.0;
 
       // Récupère le SKU saisi ; si un seul SKU attendu on le déduit
       String sku = picked.sku.trim();
@@ -174,8 +181,8 @@ class OrderTrackingController extends GetxController {
         sku = expected.keys.first;
       }
 
-      // ─── RÈGLES ────────────────────────────────────────────────────────────
-      // 0) SKU connu
+      // ---- RULES ----
+      // 0) SKU exists
       if (!expected.containsKey(sku)) {
         _toast('Unknown SKU "$sku" for order ${picked.orderId}.');
         return;
@@ -184,7 +191,7 @@ class OrderTrackingController extends GetxController {
       final int qty = picked.quantity;
       final int expQty = expected[sku]!;
 
-      // 1) Quantité (>=0 et <= attendue)
+      // 1) quantity bounds
       if (qty < 0) {
         _toast('Quantity for $sku cannot be negative.');
         return;
@@ -194,16 +201,25 @@ class OrderTrackingController extends GetxController {
         return;
       }
 
-      // 2) Pas de partiel si discounted (bloque aussi 0)
-      if (isDiscounted && qty != expQty) {
-        _toast('Partial delivery is not allowed for discounted orders. Expected $expQty.');
+      // Block completing with zero delivered items (use Fail instead)
+      if (qty == 0) {
+        _toast(
+          'Delivered quantity must be at least 1. Use "Fail" if undelivered.',
+        );
         return;
       }
 
-      // 3) COD — aucun manque ; sur-collecte tolérée jusqu’à $1.00
+      // 2) partial delivery policy for discounted
+      if (isDiscounted && qty != expQty) {
+        _toast(
+          'Partial delivery is not allowed for discounted orders. Expected $expQty.',
+        );
+        return;
+      }
+
+      // 3) COD accuracy (no shortfall, ≤ $1 over-collection allowed)
       const double overTolerance = 1.00;
       if (requiredCod > 0) {
-        // shortfall interdit
         if (picked.cod + 1e-9 < requiredCod) {
           _toast(
             'COD shortfall. Required \$${requiredCod.toStringAsFixed(2)}, '
@@ -211,7 +227,6 @@ class OrderTrackingController extends GetxController {
           );
           return;
         }
-        // sur-collecte > $1 interdite
         if (picked.cod - requiredCod > overTolerance + 1e-9) {
           _toast(
             'Over-collection above \$${overTolerance.toStringAsFixed(2)} is not allowed.',
@@ -219,7 +234,6 @@ class OrderTrackingController extends GetxController {
           return;
         }
       } else {
-        // Aucun COD attendu : ne pas accepter > $1
         if (picked.cod > overTolerance + 1e-9) {
           _toast(
             'No COD expected for this order. Collected '
@@ -229,10 +243,10 @@ class OrderTrackingController extends GetxController {
         }
       }
 
-      // 4) Séries — si l’article est serialTracked et qty>0, exiger qty séries uniques
+      // 4) serials required when the SKU is serial-tracked and qty > 0
       final bool skuSerialTracked = _isSkuSerialTracked(order, sku);
       final serials = _parseSerials(picked.serial);
-      if (skuSerialTracked && qty > 0) {
+      if (skuSerialTracked /* and qty > 0 is true here because of the zero guard */ ) {
         if (serials.isEmpty) {
           _toast('Serial numbers are required for SKU $sku.');
           return;
@@ -248,6 +262,7 @@ class OrderTrackingController extends GetxController {
           return;
         }
       }
+
       // ───────────────────────────────────────────────────────────────────────
 
       // MAJ du stop → Completed + données, puis avancer le curseur

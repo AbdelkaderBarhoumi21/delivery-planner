@@ -1,4 +1,3 @@
-// lib/features/shop/screens/order/order_trip_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/rounded_container.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/order_trip_track_model.dart';
@@ -112,13 +111,14 @@ class _OrderTripScreenState extends State<OrderTripScreen> {
             // Trip cards
             Expanded(
               child: Obx(() {
-                final items = mapCtrl.trips;
+                /// IMPORTANT : on n’affiche que les trips actifs
+                final items = mapCtrl.activeTrips;
                 final selectedId = mapCtrl.selectedTripId.value;
 
                 if (items.isEmpty) {
                   return Center(
                     child: Text(
-                      'No trips yet. Tap "Plan a Trip" below.',
+                      'No active trips. Tap "Plan a Trip" below.',
                       style: theme.textTheme.bodyMedium,
                     ),
                   );
@@ -215,7 +215,7 @@ class _OrderTripScreenState extends State<OrderTripScreen> {
 
                               TextButton(
                                 onPressed: () => Get.to(
-                                  () => OrdersTrackingScreen(),
+                                  () => const OrdersTrackingScreen(),
                                   arguments: TripTrackArgs(
                                     tripId: t.id,
                                     orderIds: t.orderIds,

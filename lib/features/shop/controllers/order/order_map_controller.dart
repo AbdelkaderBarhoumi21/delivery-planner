@@ -14,6 +14,9 @@ class TripCardVM {
   final double usedVolume;
   final double totalCod;
   final List<String> orderIds; // dérivé des stops
+  final bool isActive;         // au moins un stop Pending / InTransit
+  final bool isCompleted;      // tous les stops Completed
+
   TripCardVM({
     required this.id,
     required this.vehicleName,
@@ -21,6 +24,8 @@ class TripCardVM {
     required this.usedVolume,
     required this.totalCod,
     required this.orderIds,
+    required this.isActive,
+    required this.isCompleted,
   });
 }
 
@@ -36,6 +41,10 @@ class OrdersTripMapController extends GetxController {
   // Trips (cartes UI)
   final RxList<TripCardVM> trips = <TripCardVM>[].obs;
   final RxnString selectedTripId = RxnString();
+
+  // Expose uniquement les trips “actifs”
+  List<TripCardVM> get activeTrips =>
+      trips.where((t) => t.isActive).toList(growable: false);
 
   // Depot
   late LatLng depot;
@@ -61,25 +70,57 @@ class OrdersTripMapController extends GetxController {
       ..sort((a, b) => b.id.compareTo(a.id));
 
     trips.value = list
-        .map(
-          (t) => TripCardVM(
+        .map((t) {
+          final stops = t.stops;
+          final bool allCompleted =
+              stops.isNotEmpty && stops.every((s) => s.status == StopStatus.completed);
+          final bool anyActive = stops.any(
+            (s) => s.status == StopStatus.pending || s.status == StopStatus.inTransit,
+          );
+          return TripCardVM(
             id: t.id,
             vehicleName: t.vehicleName,
             usedWeight: t.usedWeight,
             usedVolume: t.usedVolume,
             totalCod: t.totalCod,
-            orderIds: t.stops.map((s) => s.orderId).toList(),
-          ),
-        )
+            orderIds: stops.map((s) => s.orderId).toList(),
+            isActive: anyActive,
+            isCompleted: allCompleted,
+          );
+        })
         .toList();
 
-    // conserver la sélection si possible
+    // Choisir la sélection :
+    // 1) si un trip est déjà sélectionné ET toujours présent -> on le garde,
+    //    sinon 2) on choisit le premier actif, sinon 3) on clear + clear map.
     final keep = selectedTripId.value;
-    if (keep != null && list.any((t) => t.id == keep)) {
-      _drawTripOnMap(list.firstWhere((t) => t.id == keep));
+    final TripData? keptTrip =
+        keep == null ? null : list.where((t) => t.id == keep).cast<TripData?>().firstOrNull;
+
+    if (keptTrip != null) {
+      // si le trip sélectionné est devenu 100% completed, on bascule sur un actif
+      final isNowCompleted =
+          keptTrip.stops.isNotEmpty && keptTrip.stops.every((s) => s.status == StopStatus.completed);
+      if (isNowCompleted) {
+        final firstActive = list.firstWhereOrNull((t) =>
+            t.stops.any((s) => s.status == StopStatus.pending || s.status == StopStatus.inTransit));
+        if (firstActive != null) {
+          selectedTripId.value = firstActive.id;
+          _drawTripOnMap(firstActive);
+        } else {
+          selectedTripId.value = null;
+          _clearMap();
+        }
+      } else {
+        _drawTripOnMap(keptTrip);
+      }
     } else if (list.isNotEmpty) {
-      selectedTripId.value = list.first.id;
-      _drawTripOnMap(list.first);
+      // prendre le premier actif si possible, sinon le premier de la liste
+      final firstActive = list.firstWhereOrNull((t) =>
+          t.stops.any((s) => s.status == StopStatus.pending || s.status == StopStatus.inTransit));
+      final toSelect = firstActive ?? list.first;
+      selectedTripId.value = toSelect.id;
+      _drawTripOnMap(toSelect);
     } else {
       selectedTripId.value = null;
       _clearMap();
