@@ -5,12 +5,13 @@
     "depot": { "lat": 25.2048, "lon": 55.2708 }
   },
   "vehicles": [
-    {
-      "id": "v01",
-      "name": "Sprinter Van",
-      "capacity": { "weight": 1500, "volume": 12.0 },
-      "fillRate": 0.85
-    }
+    { "id": "v01", "name": "Sprinter Van", "capacity": { "weight": 1500, "volume": 12.0 }, "fillRate": 0.85 }
+  ],
+  "customers": [
+    { "id": "CUST-A", "name": "Alice Martin", "location": { "lat": 25.22, "lon": 55.28 } },
+    { "id": "CUST-B", "name": "Bob Johnson", "location": { "lat": 25.18, "lon": 55.25 } },
+    { "id": "CUST-C", "name": "Charlie P.", "location": { "lat": 25.19, "lon": 55.29 } },
+    { "id": "CUST-D", "name": "Dina K.", "location": { "lat": 25.23, "lon": 55.26 } }
   ],
   "orders": [
     {
@@ -25,15 +26,29 @@
     {
       "id": "ORD-002",
       "customerId": "CUST-B",
-      "codAmount": 0.0,
+      "codAmount": 0.00,
       "isDiscounted": false,
       "items": [
         { "sku": "SKU-LAPTOP", "name": "Laptop Pro", "quantity": 2, "weight": 2.5, "volume": 0.01, "serialTracked": true }
       ]
+    },
+    {
+      "id": "ORD-003",
+      "customerId": "CUST-C",
+      "codAmount": 80.00,
+      "isDiscounted": false,
+      "items": [
+        { "sku": "SKU-HEADPH", "name": "Headphones", "quantity": 3, "weight": 0.3, "volume": 0.002, "serialTracked": false }
+      ]
+    },
+    {
+      "id": "ORD-004",
+      "customerId": "CUST-D",
+      "codAmount": 0.00,
+      "isDiscounted": true,
+      "items": [
+        { "sku": "SKU-USB", "name": "USB-C Cable", "quantity": 5, "weight": 0.05, "volume": 0.0005, "serialTracked": false }
+      ]
     }
-  ],
-  "customers": [
-    { "id": "CUST-A", "name": "Alice Martin", "location": { "lat": 25.22, "lon": 55.28 } },
-    { "id": "CUST-B", "name": "Bob Johnson", "location": { "lat": 25.18, "lon": 55.25 } }
   ]
 }

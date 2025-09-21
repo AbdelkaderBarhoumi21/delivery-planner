@@ -5,7 +5,9 @@ import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
 
 class OrderValidateSheet {
-  /// Returns an OrderValidationResult, or null if cancelled.
+  /// Returns an OrderValidationResult (or null if cancelled).
+  /// The dropdown shows only `remaining` orders; after you validate one,
+  /// call this sheet again with the updated `remaining` and it will disappear.
   static Future<OrderValidationResult?> show(
     BuildContext context,
     List<String> remaining,
@@ -15,10 +17,11 @@ class OrderValidateSheet {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // Controllers
     final codCtrl = TextEditingController();
     final skuCtrl = TextEditingController();
     final serialCtrl = TextEditingController();
-    final qtyCtrl = TextEditingController(text: '1');
+    final qtyCtrl = TextEditingController(text: '0'); // allow 0; controller enforces rules
 
     String selectedOrder = remaining.first;
 
@@ -38,10 +41,7 @@ class OrderValidateSheet {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          'Validate an order',
-                          style: theme.textTheme.titleMedium,
-                        ),
+                        Text('Validate an order', style: theme.textTheme.titleMedium),
                         const Spacer(),
                         IconButton(
                           onPressed: () => Get.back(), // cancel -> null
@@ -54,15 +54,12 @@ class OrderValidateSheet {
                     ),
                     const SizedBox(height: 12),
 
-                    // Order picker (value must be inside items)
+                    // Choose which remaining order to validate
                     DropdownButtonFormField<String>(
                       isExpanded: true,
                       value: selectedOrder,
                       items: remaining
-                          .map(
-                            (id) =>
-                                DropdownMenuItem(value: id, child: Text(id)),
-                          )
+                          .map((id) => DropdownMenuItem(value: id, child: Text(id)))
                           .toList(),
                       decoration: const InputDecoration(
                         labelText: 'Choose order to validate',
@@ -73,14 +70,12 @@ class OrderValidateSheet {
                         if (v != null) selectedOrder = v;
                       },
                     ),
-
                     const SizedBox(height: AppSizes.spaceBtwInputFields),
 
+                    // COD
                     TextFormField(
                       controller: codCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         labelText: 'COD',
                         prefixIcon: Icon(Icons.attach_money_rounded),
@@ -89,6 +84,7 @@ class OrderValidateSheet {
                     ),
                     const SizedBox(height: AppSizes.spaceBtwInputFields),
 
+                    // SKU
                     TextFormField(
                       controller: skuCtrl,
                       decoration: const InputDecoration(
@@ -99,13 +95,15 @@ class OrderValidateSheet {
                     ),
                     const SizedBox(height: AppSizes.spaceBtwInputFields),
 
+                    // Serial + Qty
                     Row(
                       children: [
                         Expanded(
                           child: TextFormField(
                             controller: serialCtrl,
                             decoration: const InputDecoration(
-                              labelText: 'Serial number',
+                              labelText: 'Serial number(s)',
+                              hintText: 'A1, A2 (comma/space separated)',
                               prefixIcon: Icon(Icons.qr_code_2_outlined),
                               border: OutlineInputBorder(),
                             ),
@@ -138,23 +136,23 @@ class OrderValidateSheet {
                           ),
                         ),
                         onPressed: () {
-                          // SAFE parsing — prevents crashes
-                          final q =
-                              int.tryParse(qtyCtrl.text.trim()) ?? 1; // >= 1
-                          final cod =
-                              double.tryParse(
+                          // Parse numeric fields WITHOUT clamping
+                          final rawQty = qtyCtrl.text.trim().replaceAll('−', '-');
+                          final q = int.tryParse(rawQty) ?? 0;
+                          final cod = double.tryParse(
                                 codCtrl.text.trim().replaceAll(',', '.'),
                               ) ??
                               0.0;
 
-                          final result = OrderValidationResult(
-                            orderId: selectedOrder,
-                            cod: cod,
-                            sku: skuCtrl.text.trim(),
-                            serial: serialCtrl.text.trim(),
-                            quantity: q < 1 ? 1 : q,
+                          Get.back(
+                            result: OrderValidationResult(
+                              orderId: selectedOrder,
+                              cod: cod,
+                              sku: skuCtrl.text.trim(),
+                              serial: serialCtrl.text.trim(),
+                              quantity: q, // let controller enforce rules
+                            ),
                           );
-                          Get.back(result: result);
                         },
                         child: const Text('Mark as delivered'),
                       ),
@@ -170,7 +168,8 @@ class OrderValidateSheet {
 
       return res; // null if cancelled
     } catch (e) {
-      print(e);
+      debugPrint('OrderValidateSheet error: $e');
+      return null;
     }
   }
 }

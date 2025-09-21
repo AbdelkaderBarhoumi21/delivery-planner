@@ -1,82 +1,324 @@
-// lib/features/shop/controllers/order/order_tracking_controller.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-// <-- import the model returned by the sheet
-import 'package:flutter_ecommerce_app_v2/features/shop/models/order_validation_model.dart';
-// <-- import the sheet itself
+import 'package:flutter_ecommerce_app_v2/servies/hive_services.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_model.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/bottom_sheet/order_validate_sheet.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/models/order_validation_model.dart';
 
 class OrderTrackingController extends GetxController {
-  OrderTrackingController({
-    required this.tripId,
-    required this.orderIds,
-  });
+  OrderTrackingController({required this.tripId, required this.orderIds});
 
   final String tripId;
   final List<String> orderIds;
 
-  /// stepper
+  /// Trip courant (persisté dans Hive)
+  final Rxn<TripData> tripRx = Rxn<TripData>();
+
+  /// Stepper
   final RxInt currentStep = 0.obs;
   final RxBool isCompleted = false.obs;
 
-  /// which orders are validated
-  final RxSet<String> validated = <String>{}.obs;
-
-  /// simple log lines shown under step 1
+  /// Logs pour l’UI (dérivés de l’état)
   final RxList<String> logs = <String>[].obs;
 
-  List<String> get remaining =>
-      orderIds.where((id) => !validated.contains(id)).toList();
+  // ────────────────────────────────────────────────────────────────────────────
+  // Getters utiles
+  // ────────────────────────────────────────────────────────────────────────────
+  List<String> get remaining {
+    final t = tripRx.value;
+    if (t == null) return [];
+    return t.stops
+        .where((s) => s.status != StopStatus.completed)
+        .map((s) => s.orderId)
+        .toList();
+  }
 
-  bool get allValidated => validated.length == orderIds.length;
+  int get currentIndex => tripRx.value?.currentIndex ?? 0;
 
-  Future<void> onContinue(BuildContext context) async {
-    if (currentStep.value == 0) {
-      // Accept the trip
-      logs.clear();
-      currentStep.value = 1;
-      return;
+  TripStop? get currentStop =>
+      (tripRx.value != null && tripRx.value!.stops.isNotEmpty)
+          ? tripRx.value!.stops[currentIndex]
+          : null;
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Lifecycle
+  // ────────────────────────────────────────────────────────────────────────────
+  @override
+  void onInit() {
+    super.onInit();
+    _loadTrip();
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Chargement / Sauvegarde
+  // ────────────────────────────────────────────────────────────────────────────
+  void _loadTrip() {
+    final t = HiveService.getTrip(tripId);
+    if (t == null) return;
+    tripRx.value = t;
+    _recomputeStepper(t);
+    _recomputeLogs(t);
+  }
+
+  Future<void> _saveTrip(TripData t) async {
+    await HiveService.upsertTrip(t);
+    tripRx.value = t;
+    _recomputeStepper(t);
+    _recomputeLogs(t);
+  }
+
+  void _recomputeStepper(TripData t) {
+    final allCompleted =
+        t.stops.isNotEmpty && t.stops.every((s) => s.status == StopStatus.completed);
+
+    isCompleted.value = allCompleted;
+
+    if (allCompleted) {
+      currentStep.value = 2; // Completed
+    } else if (t.stops.any((s) => s.status == StopStatus.inTransit)) {
+      currentStep.value = 1; // In-Transit
+    } else {
+      currentStep.value = 0; // Pending
     }
+  }
 
-    if (currentStep.value == 1) {
-      // Ask the user to validate one of the remaining orders
-      final OrderValidationResult? picked =
-          await OrderValidateSheet.show(context, remaining);
+  void _recomputeLogs(TripData t) {
+    final lines = <String>[];
+    for (final s in t.stops.where((x) => x.status == StopStatus.completed)) {
+      final cod = s.codCollected.toStringAsFixed(2);
+      final skuParts = s.deliveredBySku.entries.map((e) => '${e.key}:${e.value}').join(', ');
+      final sn = s.serials.isEmpty ? '' : ', SN=${s.serials.join('/')}';
+      lines.add('• ${s.orderId} validated (COD \$$cod, $skuParts$sn)');
+    }
+    logs
+      ..clear()
+      ..addAll(lines);
+  }
 
-      if (picked != null) {
-        // store the order id as validated
-        validated.add(picked.orderId);
+  // ────────────────────────────────────────────────────────────────────────────
+  // Helpers métier
+  // ────────────────────────────────────────────────────────────────────────────
+  List<String> _parseSerials(String raw) => raw
+      .split(RegExp(r'[,\s]+'))
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
 
-        // optional: log some details for the UI
-        logs.add(
-          '• ${picked.orderId} validated '
-          '(COD \$${picked.cod.toStringAsFixed(2)}, '
-          'SKU ${picked.sku}, '
-          'SN ${picked.serial}, '
-          'Q=${picked.quantity})',
-        );
+  Map<String, int> _expectedForOrder(Map<String, dynamic> order) {
+    final items = (order['items'] as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    return {
+      for (final i in items) (i['sku'] as String): (i['quantity'] as num).toInt(),
+    };
+  }
 
-        // if all orders in this trip are validated -> complete
-        if (allValidated) {
-          isCompleted.value = true;
-          currentStep.value = 2;
+  bool _isSkuSerialTracked(Map<String, dynamic> order, String sku) {
+    final items = (order['items'] as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    final it = items.firstWhere(
+      (m) => (m['sku'] as String?) == sku,
+      orElse: () => const {},
+    );
+    return (it['serialTracked'] as bool?) == true;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Actions Stepper
+  // ────────────────────────────────────────────────────────────────────────────
+  Future<void> onContinue(BuildContext context) async {
+    final t = tripRx.value;
+    if (t == null) return;
+
+    // START : tous les stops non complétés → In-Transit
+    if (currentStep.value == 0) {
+      final updated = [
+        for (final s in t.stops)
+          s.status == StopStatus.completed
+              ? s
+              : s.copyWith(status: StopStatus.inTransit),
+      ];
+
+      // curseur sur le premier non-completed
+      int nextIndex = 0;
+      for (int k = 0; k < updated.length; k++) {
+        if (updated[k].status != StopStatus.completed) {
+          nextIndex = k;
+          break;
         }
       }
+      await _saveTrip(t.copyWith(stops: updated, currentIndex: nextIndex));
       return;
     }
 
+    // VALIDATE : bottom-sheet avec dropdown d’orders restants
+    if (currentStep.value == 1) {
+      final OrderValidationResult? picked =
+          await OrderValidateSheet.show(context, remaining);
+      if (picked == null) return;
+
+      // Charger la commande pour vérifier les règles
+      final order = HiveService.orderRawById(picked.orderId);
+      if (order == null) return;
+
+      // Attendus / flags
+      final expected = _expectedForOrder(order); // {sku: qty}
+      final isDiscounted = (order['isDiscounted'] as bool?) == true;
+      final double requiredCod = (order['codAmount'] as num?)?.toDouble() ?? 0.0;
+
+      // Récupère le SKU saisi ; si un seul SKU attendu on le déduit
+      String sku = picked.sku.trim();
+      if (sku.isEmpty && expected.length == 1) {
+        sku = expected.keys.first;
+      }
+
+      // ─── RÈGLES ────────────────────────────────────────────────────────────
+      // 0) SKU connu
+      if (!expected.containsKey(sku)) {
+        _toast('Unknown SKU "$sku" for order ${picked.orderId}.');
+        return;
+      }
+
+      final int qty = picked.quantity;
+      final int expQty = expected[sku]!;
+
+      // 1) Quantité (>=0 et <= attendue)
+      if (qty < 0) {
+        _toast('Quantity for $sku cannot be negative.');
+        return;
+      }
+      if (qty > expQty) {
+        _toast('Quantity for $sku exceeds expected ($expQty).');
+        return;
+      }
+
+      // 2) Pas de partiel si discounted (bloque aussi 0)
+      if (isDiscounted && qty != expQty) {
+        _toast('Partial delivery is not allowed for discounted orders. Expected $expQty.');
+        return;
+      }
+
+      // 3) COD — aucun manque ; sur-collecte tolérée jusqu’à $1.00
+      const double overTolerance = 1.00;
+      if (requiredCod > 0) {
+        // shortfall interdit
+        if (picked.cod + 1e-9 < requiredCod) {
+          _toast(
+            'COD shortfall. Required \$${requiredCod.toStringAsFixed(2)}, '
+            'collected \$${picked.cod.toStringAsFixed(2)}.',
+          );
+          return;
+        }
+        // sur-collecte > $1 interdite
+        if (picked.cod - requiredCod > overTolerance + 1e-9) {
+          _toast(
+            'Over-collection above \$${overTolerance.toStringAsFixed(2)} is not allowed.',
+          );
+          return;
+        }
+      } else {
+        // Aucun COD attendu : ne pas accepter > $1
+        if (picked.cod > overTolerance + 1e-9) {
+          _toast(
+            'No COD expected for this order. Collected '
+            '\$${picked.cod.toStringAsFixed(2)} is not allowed.',
+          );
+          return;
+        }
+      }
+
+      // 4) Séries — si l’article est serialTracked et qty>0, exiger qty séries uniques
+      final bool skuSerialTracked = _isSkuSerialTracked(order, sku);
+      final serials = _parseSerials(picked.serial);
+      if (skuSerialTracked && qty > 0) {
+        if (serials.isEmpty) {
+          _toast('Serial numbers are required for SKU $sku.');
+          return;
+        }
+        if (serials.length != qty) {
+          _toast(
+            'Serials count (${serials.length}) must match delivered quantity ($qty).',
+          );
+          return;
+        }
+        if (serials.toSet().length != serials.length) {
+          _toast('Duplicate serials detected.');
+          return;
+        }
+      }
+      // ───────────────────────────────────────────────────────────────────────
+
+      // MAJ du stop → Completed + données, puis avancer le curseur
+      final idx = t.stops.indexWhere((s) => s.orderId == picked.orderId);
+      if (idx < 0) return;
+
+      final updatedStops = [...t.stops];
+      updatedStops[idx] = updatedStops[idx].copyWith(
+        status: StopStatus.completed,
+        codCollected: picked.cod,
+        deliveredBySku: <String, int>{sku: qty},
+        serials: serials,
+      );
+
+      // Curseur → prochain non-completed
+      int nextIndex = idx;
+      for (int k = 0; k < updatedStops.length; k++) {
+        if (updatedStops[k].status != StopStatus.completed) {
+          nextIndex = k;
+          break;
+        }
+      }
+
+      await _saveTrip(t.copyWith(stops: updatedStops, currentIndex: nextIndex));
+      return;
+    }
+
+    // FINI → retour à la liste des trips
     if (currentStep.value == 2) {
-      // Finish: go back to the previous screen (trip list)
       Get.back();
     }
   }
 
   void onCancel() {
+    // Recul visuel (l’état persistant des stops ne revient pas en arrière)
     if (currentStep.value > 0) currentStep.value -= 1;
   }
 
   void onStepTapped(int index) {
     currentStep.value = index;
+  }
+
+  /// Fail (optionnel: raison libre)
+  Future<void> markFail({String? reason}) async {
+    final t = tripRx.value;
+    if (t == null) return;
+
+    // Fail le premier stop non completed
+    int idx = 0;
+    for (int k = 0; k < t.stops.length; k++) {
+      if (t.stops[k].status != StopStatus.completed) {
+        idx = k;
+        break;
+      }
+    }
+
+    final updated = [...t.stops];
+    updated[idx] = updated[idx].copyWith(status: StopStatus.failed);
+
+    // Avancer au prochain non-completed
+    int nextIndex = idx;
+    for (int k = 0; k < updated.length; k++) {
+      if (updated[k].status != StopStatus.completed) {
+        nextIndex = k;
+        break;
+      }
+    }
+    await _saveTrip(t.copyWith(stops: updated, currentIndex: nextIndex));
+  }
+
+  void _toast(String msg) {
+    Get.snackbar('Validation', msg, snackPosition: SnackPosition.BOTTOM);
   }
 }

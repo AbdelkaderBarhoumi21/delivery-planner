@@ -22,7 +22,8 @@ class TripStop {
     double? codCollected,
     Map<String, int>? deliveredBySku,
     List<String>? serials,
-  }) => TripStop(
+  }) =>
+      TripStop(
         orderId: orderId,
         status: status ?? this.status,
         codCollected: codCollected ?? this.codCollected,
@@ -78,7 +79,8 @@ class TripData {
     double? totalCod,
     List<TripStop>? stops,
     int? currentIndex,
-  }) => TripData(
+  }) =>
+      TripData(
         id: id,
         vehicleId: vehicleId,
         vehicleName: vehicleName,

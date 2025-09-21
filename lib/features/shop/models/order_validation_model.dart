@@ -1,4 +1,3 @@
-// lib/features/shop/models/order_validation_model.dart
 class OrderValidationResult {
   final String orderId;
   final double cod;

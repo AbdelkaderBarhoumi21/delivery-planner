@@ -6,6 +6,7 @@ import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_model.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class HiveService {
+  
   // ---- Boxes ----
   static const _planBox = 'plan'; // meta, vehicles, customers
   static const _tripsBox = 'trips'; // orders by id, trips: trip_*
@@ -264,5 +265,11 @@ static Future<TripData?> updateStop(
   await upsertTrip(updated);
   return updated;
 }
+static TripData? getTrip(String tripId) {
+  final raw = Hive.box(_tripsBox).get(tripId);
+  if (raw == null) return null;
+  return TripData.fromMap(Map<String, dynamic>.from(raw as Map));
+}
+
 
 }
