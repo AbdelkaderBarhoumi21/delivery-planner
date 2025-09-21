@@ -1,4 +1,3 @@
-// lib/features/shop/screens/order/widgets/app_order_map.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -9,12 +8,14 @@ import 'package:flutter_ecommerce_app_v2/utils/helpers/helper_functions.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/order_map_controller.dart';
 
 class AppOrderTripMap extends StatelessWidget {
-  const AppOrderTripMap({super.key});
+  const AppOrderTripMap({super.key, required this.controller});
+
+  final OrdersTripMapController controller;
 
   @override
   Widget build(BuildContext context) {
     final dark = AppHelperFunctions.isDarkMode(context);
-    final c = Get.find<OrdersTripMapController>(); // ← pas de Get.put ici
+    final c = controller;
 
     return AppRoundedContainer(
       width: double.infinity,
@@ -23,7 +24,6 @@ class AppOrderTripMap extends StatelessWidget {
       showBorder: true,
       backgroundColor: dark ? AppColors.dark : AppColors.light,
       child: Obx(() {
-        // On lit bien des RxSet, donc Obx se mettra à jour
         final markers = c.markersRx.toSet();
         final polylines = c.polylinesRx.toSet();
 
@@ -32,9 +32,9 @@ class AppOrderTripMap extends StatelessWidget {
           markers: markers,
           polylines: polylines,
           initialCameraPosition: c.cameraPosition,
-          onMapCreated: (GoogleMapController gmController) {
+          onMapCreated: (gm) {
             if (!c.completerController.isCompleted) {
-              c.completerController.complete(gmController);
+              c.completerController.complete(gm);
             }
           },
           myLocationButtonEnabled: false,

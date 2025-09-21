@@ -1,205 +1,247 @@
 import 'dart:async';
-import 'dart:ui';
-import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_summary_model.dart';
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import 'package:flutter_ecommerce_app_v2/servies/hive_services.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_model.dart';
 
-/// Contrôleur GetX pilotant la GoogleMap (markers / polylines)
-/// et conservant la liste des trips créés.
+class TripCardVM {
+  final String id;
+  final String vehicleName;
+  final double usedWeight;
+  final double usedVolume;
+  final double totalCod;
+  final List<String> orderIds; // dérivé des stops
+  TripCardVM({
+    required this.id,
+    required this.vehicleName,
+    required this.usedWeight,
+    required this.usedVolume,
+    required this.totalCod,
+    required this.orderIds,
+  });
+}
+
 class OrdersTripMapController extends GetxController {
   static OrdersTripMapController get instance => Get.find();
 
-  // GoogleMap controller
-  final Completer<GoogleMapController> completerController =
-      Completer<GoogleMapController>();
+  // Google Map
+  final Completer<GoogleMapController> completerController = Completer();
+  late CameraPosition cameraPosition;
+  final RxSet<Marker> markersRx = <Marker>{}.obs;
+  final RxSet<Polyline> polylinesRx = <Polyline>{}.obs;
 
-  /// État de la carte
-  final RxSet<Marker> _markers = <Marker>{}.obs;
-  final RxSet<Polyline> _polylines = <Polyline>{}.obs;
+  // Trips (cartes UI)
+  final RxList<TripCardVM> trips = <TripCardVM>[].obs;
+  final RxnString selectedTripId = RxnString();
 
-  /// Exposition réactive (à utiliser dans Obx)
-  RxSet<Marker> get markersRx => _markers;
-  RxSet<Polyline> get polylinesRx => _polylines;
-
-  /// Liste persistante des trips résumés (affichés en Card sous la map)
-  final RxList<TripSummary> trips = <TripSummary>[].obs;
-
-  /// Caméra de départ
-  late final CameraPosition cameraPosition;
-
-  /// IDs fixes des marqueurs qu’on affiche (1 véhicule + 2 stops démo)
-  static const _vehicleId = MarkerId('vehicle');
-  static const _order1Id = MarkerId('order1');
-  static const _order2Id = MarkerId('order2');
+  // Depot
+  late LatLng depot;
 
   @override
   void onInit() {
     super.onInit();
-    cameraPosition = const CameraPosition(
-      target: LatLng(35.8369, 10.5925), // Sousse (exemple)
-      zoom: 12.5,
-    );
+    final d = HiveService.depotLatLon();
+    depot = LatLng(d['lat']!, d['lon']!);
+    cameraPosition = CameraPosition(target: depot, zoom: 12);
+
+    _loadTripsFromHive();
+    // refresh à chaque mutation de la box 'trips'
+    HiveService.watchTrips().listen((_) => _loadTripsFromHive());
   }
 
   // ---------------------------------------------------------------------------
-  // API publique : positionner les marqueurs
+  // Chargement & sélection
   // ---------------------------------------------------------------------------
+  void _loadTripsFromHive() {
+    final raw = HiveService.getAllTripsRaw();
+    final list = raw.map(TripData.fromMap).toList()
+      ..sort((a, b) => b.id.compareTo(a.id));
 
-  void setVehicle(LatLng p) {
-    _markers.removeWhere((m) => m.markerId == _vehicleId);
-    _markers.add(
+    trips.value = list
+        .map(
+          (t) => TripCardVM(
+            id: t.id,
+            vehicleName: t.vehicleName,
+            usedWeight: t.usedWeight,
+            usedVolume: t.usedVolume,
+            totalCod: t.totalCod,
+            orderIds: t.stops.map((s) => s.orderId).toList(),
+          ),
+        )
+        .toList();
+
+    // conserver la sélection si possible
+    final keep = selectedTripId.value;
+    if (keep != null && list.any((t) => t.id == keep)) {
+      _drawTripOnMap(list.firstWhere((t) => t.id == keep));
+    } else if (list.isNotEmpty) {
+      selectedTripId.value = list.first.id;
+      _drawTripOnMap(list.first);
+    } else {
+      selectedTripId.value = null;
+      _clearMap();
+    }
+  }
+
+  /// Sélection publique d’un trip (depuis un tap sur la carte UI)
+  void selectTrip(String tripId) {
+    final data = HiveService.getAllTripsRaw()
+        .map(TripData.fromMap)
+        .firstWhere((t) => t.id == tripId);
+    selectedTripId.value = tripId;
+    _drawTripOnMap(data);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Création de trip (depuis la bottom-sheet)
+  // ---------------------------------------------------------------------------
+  Future<void> createTrip({
+    required String vehicleId,
+    required String vehicleName,
+    required List<String> orderIds,
+  }) async {
+    double w = 0, v = 0, cod = 0;
+
+    for (final id in orderIds) {
+      final o = HiveService.orderRawById(id);
+      if (o == null) continue;
+
+      final items = (o['items'] as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
+      for (final it in items) {
+        final q = (it['quantity'] as num).toInt();
+        w += ((it['weight'] as num).toDouble()) * q;
+        v += ((it['volume'] as num).toDouble()) * q;
+      }
+      cod += (o['codAmount'] as num?)?.toDouble() ?? 0.0;
+    }
+
+    // Construire les stops PENDING
+    final stops = <TripStop>[for (final id in orderIds) TripStop(orderId: id)];
+
+    final id = 'trip_${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}';
+    final trip = TripData(
+      id: id,
+      vehicleId: vehicleId,
+      vehicleName: vehicleName,
+      usedWeight: w,
+      usedVolume: v,
+      totalCod: cod,
+      stops: stops,
+      currentIndex: 0,
+    );
+
+    await HiveService.upsertTrip(trip);
+
+    // sélection auto du nouveau trip
+    selectedTripId.value = trip.id;
+    _drawTripOnMap(trip);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Map helpers
+  // ---------------------------------------------------------------------------
+  void _clearMap() {
+    markersRx
+      ..clear()
+      ..add(
+        Marker(
+          markerId: const MarkerId('depot'),
+          position: depot,
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueAzure,
+          ),
+          infoWindow: const InfoWindow(title: 'Depot'),
+        ),
+      );
+    polylinesRx.clear();
+  }
+
+  void _drawTripOnMap(TripData t) {
+    final customerPoints = <LatLng>[];
+    final stopMarkers = <Marker>[];
+
+    final orderIds = t.stops.map((s) => s.orderId).toList();
+
+    for (int i = 0; i < orderIds.length; i++) {
+      final o = HiveService.orderRawById(orderIds[i]);
+      if (o == null) continue;
+      final cust = HiveService.customerById(o['customerId'] as String);
+      if (cust == null) continue;
+
+      final loc = Map<String, dynamic>.from(cust['location'] as Map);
+      final pt = LatLng(
+        (loc['lat'] as num).toDouble(),
+        (loc['lon'] as num).toDouble(),
+      );
+      customerPoints.add(pt);
+
+      stopMarkers.add(
+        Marker(
+          markerId: MarkerId('stop_${i + 1}_${orderIds[i]}'),
+          position: pt,
+          infoWindow: InfoWindow(
+            title: orderIds[i],
+            snippet: cust['name'] as String?,
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        ),
+      );
+    }
+
+    final mks = <Marker>{
       Marker(
-        markerId: _vehicleId,
-        position: p,
-        infoWindow: const InfoWindow(title: 'Vehicle'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueAzure,
-        ),
+        markerId: const MarkerId('depot'),
+        position: depot,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        infoWindow: const InfoWindow(title: 'Depot'),
       ),
+      ...stopMarkers,
+    };
+
+    final points = <LatLng>[depot, ...customerPoints];
+
+    final poly = Polyline(
+      polylineId: PolylineId('trip_${t.id}'),
+      points: points,
+      width: 4,
+      color: const Color(0xFF2962FF),
     );
-    _rebuildRoute();
-    _fitCameraToAll();
+
+    markersRx
+      ..clear()
+      ..addAll(mks);
+    polylinesRx
+      ..clear()
+      ..add(poly);
+
+    _fitAll(points);
   }
 
-  void setOrder1(LatLng? p) {
-    _markers.removeWhere((m) => m.markerId == _order1Id);
-    if (p != null) {
-      _markers.add(
-        Marker(
-          markerId: _order1Id,
-          position: p,
-          infoWindow: const InfoWindow(title: 'Order 1'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueRed,
-          ),
-        ),
-      );
-    }
-    _rebuildRoute();
-    _fitCameraToAll();
-  }
-
-  void setOrder2(LatLng? p) {
-    _markers.removeWhere((m) => m.markerId == _order2Id);
-    if (p != null) {
-      _markers.add(
-        Marker(
-          markerId: _order2Id,
-          position: p,
-          infoWindow: const InfoWindow(title: 'Order 2'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueOrange,
-          ),
-        ),
-      );
-    }
-    _rebuildRoute();
-    _fitCameraToAll();
-  }
-
-  /// Appelé par l’écran après un “Save Trip” de la bottom-sheet.
-  /// - Met à jour les marqueurs/route de **ce dernier trip**
-  /// - Ajoute un **résumé persistant** dans [trips] (cartes sous la map)
-void applyTripSelection({
-  required String vehicleName,
-  required double usedWeight,
-  required double usedVolume,
-  required double totalCod,            // <<< NEW
-  required List<String> orderIds,
-  required Map<String, LatLng> coords,
-  required LatLng vehiclePos,
-}) {
-  setVehicle(vehiclePos);
-  setOrder1(orderIds.isNotEmpty ? coords[orderIds[0]] : null);
-  setOrder2(orderIds.length > 1 ? coords[orderIds[1]] : null);
-
-  trips.add(TripSummary(
-    id: _randomId(),
-    vehicleName: vehicleName,
-    usedWeight: usedWeight,
-    usedVolume: usedVolume,
-    totalCod: totalCod,                // <<< NEW
-    orderIds: List.of(orderIds),
-  ));
-}
-
-  /// (Optionnel) Vider la carte (route + marqueurs)
-  void clearMap() {
-    _polylines.clear();
-    _markers.clear();
-  }
-  LatLng? _getPos(MarkerId id) {
-    for (final m in _markers) {
-      if (m.markerId == id) return m.position;
-    }
-    return null;
-  }
-
-  void _rebuildRoute() {
-    final pts = <LatLng>[];
-
-    final veh = _getPos(_vehicleId);
-    final o1 = _getPos(_order1Id);
-    final o2 = _getPos(_order2Id);
-
-    if (veh != null) pts.add(veh);
-    if (o1 != null) pts.add(o1);
-    if (o2 != null) pts.add(o2);
-
-    _polylines.clear();
-    if (pts.length >= 2) {
-      _polylines.add(
-        Polyline(
-          polylineId: const PolylineId('route'),
-          points: pts,
-          color: const Color(0xFF1565C0),
-          width: 4,
-        ),
-      );
-    }
-  }
-
-  Future<void> _fitCameraToAll() async {
+  Future<void> _fitAll(List<LatLng> pts) async {
+    if (pts.isEmpty) return;
     if (!completerController.isCompleted) return;
-    final controller = await completerController.future;
-    if (_markers.isEmpty) return;
-
-    LatLngBounds? bounds;
-    for (final m in _markers) {
-      final p = m.position;
-      bounds = (bounds == null)
-          ? LatLngBounds(southwest: p, northeast: p)
-          : LatLngBounds(
-              southwest: LatLng(
-                _min(bounds!.southwest.latitude, p.latitude),
-                _min(bounds!.southwest.longitude, p.longitude),
-              ),
-              northeast: LatLng(
-                _max(bounds!.northeast.latitude, p.latitude),
-                _max(bounds!.northeast.longitude, p.longitude),
-              ),
-            );
-    }
-    if (bounds == null) return;
-
-    try {
-      await controller.animateCamera(
-        CameraUpdate.newLatLngBounds(bounds, 60),
-      );
-    } catch (_) {
-      // Fallback si les bounds échouent (ex: trop serrés)
-      await controller.animateCamera(
-        CameraUpdate.newLatLng(_markers.first.position),
-      );
-    }
+    final ctrl = await completerController.future;
+    final b = _boundsFrom(pts);
+    await ctrl.animateCamera(CameraUpdate.newLatLngBounds(b, 48));
   }
 
-  String _randomId() {
-    final n = DateTime.now().millisecondsSinceEpoch.remainder(0xFFFFFF);
-    return n.toRadixString(16);
+  LatLngBounds _boundsFrom(List<LatLng> pts) {
+    double? minLat, minLon, maxLat, maxLon;
+    for (final p in pts) {
+      minLat = (minLat == null) ? p.latitude : math.min(minLat, p.latitude);
+      minLon = (minLon == null) ? p.longitude : math.min(minLon, p.longitude);
+      maxLat = (maxLat == null) ? p.latitude : math.max(maxLat, p.latitude);
+      maxLon = (maxLon == null) ? p.longitude : math.max(maxLon, p.longitude);
+    }
+    return LatLngBounds(
+      southwest: LatLng(minLat!, minLon!),
+      northeast: LatLng(maxLat!, maxLon!),
+    );
   }
-
-  double _min(double a, double b) => a < b ? a : b;
-  double _max(double a, double b) => a > b ? a : b;
 }

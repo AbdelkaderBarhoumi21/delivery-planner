@@ -8,7 +8,10 @@ import 'package:flutter_ecommerce_app_v2/features/shop/models/order_validation_m
 import 'package:flutter_ecommerce_app_v2/common/widget/bottom_sheet/order_validate_sheet.dart';
 
 class OrderTrackingController extends GetxController {
-  OrderTrackingController({required this.tripId, required this.orderIds});
+  OrderTrackingController({
+    required this.tripId,
+    required this.orderIds,
+  });
 
   final String tripId;
   final List<String> orderIds;
@@ -37,16 +40,24 @@ class OrderTrackingController extends GetxController {
     }
 
     if (currentStep.value == 1) {
-      final OrderValidationResult? picked = await OrderValidateSheet.show(
-        context,
-        remaining,
-      );
+      // Ask the user to validate one of the remaining orders
+      final OrderValidationResult? picked =
+          await OrderValidateSheet.show(context, remaining);
+
       if (picked != null) {
+        // store the order id as validated
         validated.add(picked.orderId);
+
+        // optional: log some details for the UI
         logs.add(
-          '• ${picked.orderId} validated (COD \$${picked.cod.toStringAsFixed(2)}, '
-          'SKU ${picked.sku}, SN ${picked.serial}, Q=${picked.quantity})',
+          '• ${picked.orderId} validated '
+          '(COD \$${picked.cod.toStringAsFixed(2)}, '
+          'SKU ${picked.sku}, '
+          'SN ${picked.serial}, '
+          'Q=${picked.quantity})',
         );
+
+        // if all orders in this trip are validated -> complete
         if (allValidated) {
           isCompleted.value = true;
           currentStep.value = 2;

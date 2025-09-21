@@ -18,7 +18,7 @@ class OrdersdetailsController extends GetxController {
 
   // données exposées
   late String customerName;
-  late String customerAddress; // <-- NOUVEAU
+  late String customerAddress;
   late LatLng customerLatLng;
   late LatLng depotLatLng;
   late String status;
@@ -54,7 +54,6 @@ class OrdersdetailsController extends GetxController {
     shippingDate = HiveService.shippingDate();
 
     if (order == null) {
-      // fallback “soft” si l’ID n’existe pas (ne jamais mettre une adresse random)
       customerName = 'Unknown';
       customerAddress =
           '${depotLatLng.latitude.toStringAsFixed(4)}, ${depotLatLng.longitude.toStringAsFixed(4)}';
@@ -79,7 +78,7 @@ class OrdersdetailsController extends GetxController {
 
       customerName = (cust['name'] as String?) ?? 'Unknown';
 
-      // adresse si présente, sinon coordinates
+      // adresse si présente, sinon coordonnées
       final loc = _asStringMap(cust['location']);
       final lat = (loc['lat'] as num?)?.toDouble();
       final lon = (loc['lon'] as num?)?.toDouble();
@@ -128,15 +127,26 @@ class OrdersdetailsController extends GetxController {
 
     // --------- Map ----------
     cameraPosition = CameraPosition(target: customerLatLng, zoom: 12);
+
+    // Icônes distinctes (client = rouge, dépôt = bleu azur)
+    final customerIcon = BitmapDescriptor.defaultMarkerWithHue(
+      BitmapDescriptor.hueRed,
+    );
+    final depotIcon = BitmapDescriptor.defaultMarkerWithHue(
+      BitmapDescriptor.hueAzure,
+    );
+
     markers.assignAll([
       Marker(
         markerId: const MarkerId('customer'),
         position: customerLatLng,
+        icon: customerIcon, // <<<<<< DIFF
         infoWindow: InfoWindow(title: customerName, snippet: customerAddress),
       ),
       Marker(
         markerId: const MarkerId('depot'),
         position: depotLatLng,
+        icon: depotIcon, // <<<<<< DIFF
         infoWindow: const InfoWindow(title: 'Depot'),
       ),
     ]);
