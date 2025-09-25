@@ -2,7 +2,7 @@ import 'package:get/get.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/vehicle_model.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/order_option.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_selection_model.dart';
-import 'package:flutter_ecommerce_app_v2/servies/hive_services.dart';
+import 'package:flutter_ecommerce_app_v2/data/services/hive_services.dart';
 
 class TripSheetController extends GetxController {
   TripSheetController({required this.vehicles, required this.orders});

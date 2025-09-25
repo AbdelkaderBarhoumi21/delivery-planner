@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app_v2/features/chats/screens/chat_screen.dart';
 import 'package:flutter_ecommerce_app_v2/features/personalization/screens/profile/profile_screen.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/screens/home/home_screen.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/history_screen.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/order_history_screen.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
 import 'package:flutter_ecommerce_app_v2/utils/helpers/helper_functions.dart';
 import 'package:get/get.dart';

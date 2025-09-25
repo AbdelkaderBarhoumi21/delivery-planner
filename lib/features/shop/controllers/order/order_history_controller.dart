@@ -1,8 +1,9 @@
+import 'package:flutter_ecommerce_app_v2/features/shop/models/history_assign_model.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/order_trip_track_model.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_model.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/order_tracking_screen.dart';
 import 'package:get/get.dart';
-import 'package:flutter_ecommerce_app_v2/servies/hive_services.dart';
+import 'package:flutter_ecommerce_app_v2/data/services/hive_services.dart';
 
 class OrderHistoryController extends GetxController {
   static OrderHistoryController get instance => Get.find();
@@ -136,15 +137,4 @@ class OrderHistoryController extends GetxController {
   bool _isCancelled(String s) => s == 'Cancelled' || s == 'Failed';
 }
 
-class HistoryItemVM {
-  final String id;
-  final String status; // "Pending", "In-Transit", etc.
-  final DateTime shippingDate;
-  final String customerName;
-  HistoryItemVM({
-    required this.id,
-    required this.status,
-    required this.shippingDate,
-    required this.customerName,
-  });
-}
+

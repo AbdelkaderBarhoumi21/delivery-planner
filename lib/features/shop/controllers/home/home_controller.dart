@@ -1,7 +1,8 @@
 // lib/features/shop/controllers/home/home_controller.dart
 import 'dart:async';
+import 'package:flutter_ecommerce_app_v2/features/shop/models/assign_order_model.dart';
 import 'package:get/get.dart';
-import 'package:flutter_ecommerce_app_v2/servies/hive_services.dart';
+import 'package:flutter_ecommerce_app_v2/data/services/hive_services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class HomeController extends GetxController {
@@ -59,15 +60,4 @@ class HomeController extends GetxController {
   }
 }
 
-class AssignedVM {
-  final String id;
-  final String status;         // 'Pending' | 'In-Transit'
-  final DateTime shippingDate;
-  final String customerName;
-  AssignedVM({
-    required this.id,
-    required this.status,
-    required this.shippingDate,
-    required this.customerName,
-  });
-}
+

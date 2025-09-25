@@ -1,96 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/rounded_container.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/models/order_trip_track_model.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/order_tracking_screen.dart';
-import 'package:flutter_ecommerce_app_v2/servies/hive_services.dart';
-import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
-import 'package:flutter_ecommerce_app_v2/utils/helpers/helper_functions.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:iconsax/iconsax.dart';
 
 import 'package:flutter_ecommerce_app_v2/common/styles/padding.dart';
+import 'package:flutter_ecommerce_app_v2/common/widget/custom_shapes/rounded_container.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/appbar/appbar.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/screens/order/widgets/order_tripplanner_map.dart';
+
+import 'package:flutter_ecommerce_app_v2/utils/constants/colors.dart';
 import 'package:flutter_ecommerce_app_v2/utils/constants/sizes.dart';
+import 'package:flutter_ecommerce_app_v2/utils/helpers/helper_functions.dart';
+import 'package:iconsax/iconsax.dart';
 
-import 'package:flutter_ecommerce_app_v2/features/shop/models/vehicle_model.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/models/order_option.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_selection_model.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/order_trip_screen_controller.dart';
 
-import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/order_map_controller.dart';
-import 'package:flutter_ecommerce_app_v2/features/shop/controllers/order/trip_controller.dart';
-
-import 'package:flutter_ecommerce_app_v2/common/widget/bottom_sheet/trip_bottom_sheet.dart';
-import 'widgets/order_tripplanner_map.dart';
-
-class OrderTripScreen extends StatefulWidget {
+class OrderTripScreen extends StatelessWidget {
   const OrderTripScreen({super.key});
-  @override
-  State<OrderTripScreen> createState() => _OrderTripScreenState();
-}
-
-class _OrderTripScreenState extends State<OrderTripScreen> {
-  late final TripSheetController ctrl;
-  late final OrdersTripMapController mapCtrl;
-  final _money = NumberFormat.simpleCurrency(decimalDigits: 2);
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Build options from Hive (strongly typed)
-    final vOpts = HiveService.vehicleOptions()
-        .map((v) => VehicleOption(
-              id: v['id'] as String,
-              name: v['name'] as String,
-              capacityWeight:
-                  ((v['capacity'] as Map)['weight'] as num).toDouble(),
-              capacityVolume:
-                  ((v['capacity'] as Map)['volume'] as num).toDouble(),
-              fillRate: (v['fillRate'] as num).toDouble(),
-            ))
-        .toList(growable: false);
-
-    final oOpts = HiveService.orderOptions()
-        .map(OrderOption.fromHive)
-        .toList(growable: false);
-
-    ctrl = Get.put(
-      TripSheetController(vehicles: vOpts, orders: oOpts),
-      tag: 'trip_screen_controller',
-    );
-
-    // Single instance of the map controller for this screen
-    mapCtrl = Get.isRegistered<OrdersTripMapController>()
-        ? Get.find<OrdersTripMapController>()
-        : Get.put(OrdersTripMapController(), permanent: true);
-  }
-
-  Future<void> _planTrip() async {
-    final TripSelection? sel = await TripBottomSheet.show(
-      context,
-      vehicles: ctrl.vehicles,
-      orders: ctrl.orders,
-    );
-    if (sel == null) return;
-
-    final v = ctrl.vehicles.firstWhere((x) => x.id == sel.vehicleId);
-
-    await mapCtrl.createTrip(
-      vehicleId: v.id,
-      vehicleName: v.name,
-      orderIds: sel.orderIds,
-    );
-  }
-
-  @override
-  void dispose() {
-    Get.delete<TripSheetController>(tag: 'trip_screen_controller', force: true);
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
+    // Put controller here so the screen can be Stateless
+    final c = Get.put(OrderTripScreenController());
+
     final theme = Theme.of(context);
     final dark = AppHelperFunctions.isDarkMode(context);
 
@@ -104,16 +35,15 @@ class _OrderTripScreenState extends State<OrderTripScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Map
-            AppOrderTripMap(controller: mapCtrl),
+            // Map (same behavior)
+            AppOrderTripMap(controller: c.mapCtrl),
             const SizedBox(height: AppSizes.spaceBtwItems),
 
             // Trip cards
             Expanded(
               child: Obx(() {
-                /// IMPORTANT : on n’affiche que les trips actifs
-                final items = mapCtrl.activeTrips;
-                final selectedId = mapCtrl.selectedTripId.value;
+                final items = c.mapCtrl.activeTrips;              // unchanged
+                final selectedId = c.mapCtrl.selectedTripId.value;
 
                 if (items.isEmpty) {
                   return Center(
@@ -142,7 +72,7 @@ class _OrderTripScreenState extends State<OrderTripScreen> {
                         isSelected ? Colors.white70 : AppColors.darkerGrey;
 
                     return GestureDetector(
-                      onTap: () => mapCtrl.selectTrip(t.id),
+                      onTap: () => c.selectTrip(t.id),
                       child: AppRoundedContainer(
                         showBorder: true,
                         backgroundColor: cardBg,
@@ -196,7 +126,7 @@ class _OrderTripScreenState extends State<OrderTripScreen> {
                                       style: theme.textTheme.bodyMedium!
                                           .copyWith(color: subText)),
                                   const Spacer(),
-                                  Text(_money.format(t.totalCod)),
+                                  Text(c.money.format(t.totalCod)),
                                 ],
                               ),
                               const SizedBox(height: AppSizes.spaceBtwItems / 2),
@@ -214,13 +144,8 @@ class _OrderTripScreenState extends State<OrderTripScreen> {
                               ),
 
                               TextButton(
-                                onPressed: () => Get.to(
-                                  () => const OrdersTrackingScreen(),
-                                  arguments: TripTrackArgs(
-                                    tripId: t.id,
-                                    orderIds: t.orderIds,
-                                  ),
-                                ),
+                                onPressed: () =>
+                                    c.openTracking(t.id, t.orderIds),
                                 child: Text(
                                   'Track',
                                   style: theme.textTheme.bodyMedium!.apply(
@@ -245,7 +170,7 @@ class _OrderTripScreenState extends State<OrderTripScreen> {
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.playlist_add),
                 label: const Text('Plan a Trip'),
-                onPressed: _planTrip,
+                onPressed: () => c.planTrip(context),
               ),
             ),
           ],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'package:flutter_ecommerce_app_v2/servies/hive_services.dart';
+import 'package:flutter_ecommerce_app_v2/data/services/hive_services.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_model.dart';
 import 'package:flutter_ecommerce_app_v2/common/widget/bottom_sheet/order_validate_sheet.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/order_validation_model.dart';

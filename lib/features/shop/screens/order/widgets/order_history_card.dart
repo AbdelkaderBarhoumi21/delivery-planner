@@ -1,5 +1,6 @@
 // lib/features/shop/screens/order/widgets/order_history_card.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/models/history_assign_model.dart';
 import 'package:intl/intl.dart';
 import 'package:iconsax/iconsax.dart';
 

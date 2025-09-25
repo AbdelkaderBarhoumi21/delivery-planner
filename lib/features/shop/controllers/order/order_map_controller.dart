@@ -1,33 +1,14 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_ecommerce_app_v2/features/shop/models/order_trip_card._model.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import 'package:flutter_ecommerce_app_v2/servies/hive_services.dart';
+import 'package:flutter_ecommerce_app_v2/data/services/hive_services.dart';
 import 'package:flutter_ecommerce_app_v2/features/shop/models/trip_model.dart';
 
-class TripCardVM {
-  final String id;
-  final String vehicleName;
-  final double usedWeight;
-  final double usedVolume;
-  final double totalCod;
-  final List<String> orderIds; // dérivé des stops
-  final bool isActive;         // au moins un stop Pending / InTransit
-  final bool isCompleted;      // tous les stops Completed
 
-  TripCardVM({
-    required this.id,
-    required this.vehicleName,
-    required this.usedWeight,
-    required this.usedVolume,
-    required this.totalCod,
-    required this.orderIds,
-    required this.isActive,
-    required this.isCompleted,
-  });
-}
 
 class OrdersTripMapController extends GetxController {
   static OrdersTripMapController get instance => Get.find();
