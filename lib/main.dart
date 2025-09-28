@@ -6,9 +6,12 @@ import 'package:flutter_ecommerce_app_v2/my_app.dart';
 import 'package:flutter_ecommerce_app_v2/data/services/hive_services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   Env.init();
   await GetStorage.init();
   await HiveService.init();
