@@ -10,7 +10,7 @@ on:
 jobs:
     # 🏗️ Job name
     distribute_to_firebase:
-        # 👉 Virtual machine used.
+        # 👉 Virtual machine used in andoird.
         # For Android builds → ubuntu-latest is enough
         # For iOS builds → you would need macos-latest
         runs-on: ubuntu-latest
