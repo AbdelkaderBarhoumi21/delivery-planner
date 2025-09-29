@@ -1,0 +1,52 @@
+# 🚀 Workflow name (this will appear in GitHub Actions UI)
+name: Android Fastlane with Firebase App Distribution Workflow
+
+# 📌 Trigger: run this workflow every time there is a push on master branch
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    # 🏗️ Job name
+    distribute_to_firebase:
+        # 👉 Virtual machine used.
+        # For Android builds → ubuntu-latest is enough
+        # For iOS builds → you would need macos-latest
+        runs-on: ubuntu-latest
+
+        steps:
+            # Step 1: Checkout the repository code
+            - name: Checkout my repo code
+              uses: actions/checkout@v2
+
+            # Step 2: Set up JDK 11 (required for Gradle/Android SDK)
+            - name: Set up JDK 11
+              uses: actions/setup-java@v2
+              with:
+                  java-version: "11" # Java version to install
+                  distribution: "temurin" # Temurin OpenJDK distribution (recommended)
+
+            # Step 3: Install Flutter (stable channel by default)
+            - name: Install Flutter
+              uses: subosito/flutter-action@v2
+              with:
+                  channel: stable # stable version of Flutter
+
+            # Step 4: Set up Ruby (needed for Fastlane)
+            - name: Setup Ruby
+              uses: ruby/setup-ruby@v1
+              with:
+                  ruby-version: "3.4.6" # Ruby version
+                  bundler-cache: true # caches gems to speed up future runs
+                  working-directory: android # Gemfile is inside android/ folder (where Fastlane is installed)
+
+            # Step 5: Build the Flutter app + distribute via Firebase App Distribution
+            - name: Build and Distribute App
+              env:
+                  # 🔑 Environment variable: your Firebase token stored in GitHub Secrets
+                  FIREBASE_CLI_TOKEN: ${{ secrets.FIREBASE_CLI_TOKEN }}
+              run: |
+                  # Execute the Fastlane lane defined in android/fastlane/Fastfile
+                  bundle exec fastlane android firebase_distribution
+              working-directory: android # run inside the android/ directory
