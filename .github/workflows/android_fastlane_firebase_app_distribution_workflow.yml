@@ -37,7 +37,7 @@ jobs:
             - name: Setup Ruby
               uses: ruby/setup-ruby@v1
               with:
-                  ruby-version: "3.4.6" # Ruby version
+                  ruby-version: "3.2.3" # Ruby version
                   bundler-cache: true # caches gems to speed up future runs
                   working-directory: android # Gemfile is inside android/ folder (where Fastlane is installed)
 
