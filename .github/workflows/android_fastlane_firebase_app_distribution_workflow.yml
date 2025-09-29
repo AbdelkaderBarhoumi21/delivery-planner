@@ -45,8 +45,7 @@ jobs:
             - name: Build and Distribute App
               env:
                   # 🔑 Environment variable: your Firebase token stored in GitHub Secrets
-                  FIREBASE_CLI_TOKEN: ${{ secrets.FIREBASE_CLI_TOKEN }}
+                  FIREBASE_CLI_TOKEN: ${{secrets.FIREBASE_CLI_TOKEN}}
               run: |
-                  # Execute the Fastlane lane defined in android/fastlane/Fastfile
                   bundle exec fastlane android firebase_distribution
               working-directory: android # run inside the android/ directory
