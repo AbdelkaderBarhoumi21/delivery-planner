@@ -37,7 +37,7 @@ jobs:
             - name: Setup Ruby
               uses: ruby/setup-ruby@v1
               with:
-                  ruby-version: "3.4.6" # Ruby version
+                  ruby-version: "3.2.3" # Ruby version
                   bundler-cache: true # caches gems to speed up future runs
                   working-directory: android # Gemfile is inside android/ folder (where Fastlane is installed)
 
@@ -45,8 +45,7 @@ jobs:
             - name: Build and Distribute App
               env:
                   # 🔑 Environment variable: your Firebase token stored in GitHub Secrets
-                  FIREBASE_CLI_TOKEN: ${{ secrets.FIREBASE_CLI_TOKEN }}
+                  FIREBASE_CLI_TOKEN: ${{secrets.FIREBASE_CLI_TOKEN}}
               run: |
-                  # Execute the Fastlane lane defined in android/fastlane/Fastfile
                   bundle exec fastlane android firebase_distribution
               working-directory: android # run inside the android/ directory
